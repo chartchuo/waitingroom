@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: mockserver
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: mockserver.minikube
+    http:
+      paths:
+      - backend:
+          serviceName: mockserver
+          servicePort: 80
