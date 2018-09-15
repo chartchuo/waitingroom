@@ -6,6 +6,11 @@ import (
 
 func main() {
 	r := gin.Default()
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Mock server home",
+		})
+	})
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -17,7 +22,7 @@ func main() {
 		})
 	})
 	r.GET("/redirect", func(c *gin.Context) {
-		c.Redirect(301, "/destination")
+		c.Redirect(302, "/destination")
 	})
 	r.Run(":8888")
 }
