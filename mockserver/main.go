@@ -11,6 +11,16 @@ func main() {
 			"message": "Mock server home",
 		})
 	})
+	r.GET("/login", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "login",
+		})
+	})
+	r.GET("/logout", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "logout",
+		})
+	})
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -23,6 +33,9 @@ func main() {
 	})
 	r.GET("/redirect", func(c *gin.Context) {
 		c.Redirect(302, "/destination")
+	})
+	r.GET("/error", func(c *gin.Context) {
+		c.Err()
 	})
 	r.Run(":8888")
 }

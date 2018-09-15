@@ -11,4 +11,4 @@ spec:
       paths:
       - backend:
           serviceName: mockserver
-          servicePort: 80
+          servicePort: 8888
