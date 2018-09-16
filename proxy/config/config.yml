@@ -1,0 +1,8 @@
+hostdb:
+  'mockserver:80': mock
+  'www.apichart.me:80': apichart
+  'apichart.me:80': apichart
+targetdb:
+  mock: 'mockserver:8888'
+  apichart: '216.58.203.83:80'
+  

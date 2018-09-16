@@ -21,8 +21,13 @@ deploy:
 	kubectl apply -f deployment.yml
 	kubectl apply -f service.yml 
 	kubectl apply -f ingress.yml
+	kubectl apply -f configmap.yml	
 
 autoscale:
 	kubectl autoscale deployment $(service) --min=1 --max=10 --cpu-percent=50
 
 a: clean build push deploy
+
+r:
+	go build
+	./proxy

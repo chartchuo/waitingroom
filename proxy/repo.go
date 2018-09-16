@@ -9,29 +9,29 @@ type Host struct {
 	Name string
 }
 
-type Target struct {
-	TargetAddress string
-}
+// type Target struct {
+// 	TargetAddress string
+// }
 
 type InspectField struct {
 	Field string
 }
 
 //map url to host
-var HostDB = map[string]string{
-	"chartchuo.noip.me:80": "chartchuo.com",
-	"www.pantip.com:80":    "pantip.com",
-	"pantip.com:80":        "pantip.com",
-	"m.pantip.com:80":      "pantip.com",
-	"mockserver:80":        "mock",
-}
+// var HostDB = map[string]string{
+// 	"chartchuo.noip.me:80": "chartchuo.com",
+// 	"www.pantip.com:80":    "pantip.com",
+// 	"pantip.com:80":        "pantip.com",
+// 	"m.pantip.com:80":      "pantip.com",
+// 	"mockserver:80":        "mock",
+// }
 
 //map host to target
-var targetDB = map[string]Target{
-	"chartchuo.com": {TargetAddress: "58.11.248.160:80"},
-	"pantip.com":    {TargetAddress: "203.151.13.167:80"},
-	"mock":          {TargetAddress: "mockserver:8888"},
-}
+// var targetDB = map[string]Target{
+// 	"chartchuo.com": {TargetAddress: "58.11.248.160:80"},
+// 	"pantip.com":    {TargetAddress: "203.151.13.167:80"},
+// 	"mock":          {TargetAddress: "mockserver:8888"},
+// }
 
 //map host+path to sqli
 var sqlInjectionDB = map[string]map[string][]InspectField{
@@ -60,7 +60,8 @@ func HostGet(domainname string) (string, error) {
 	if !strings.Contains(domainname, ":") {
 		domainname = domainname + ":80"
 	}
-	s, ok := HostDB[domainname]
+	c := confManager.Get()
+	s, ok := c.HostDB[domainname]
 	if !ok {
 		return "", errors.New("Invalid domain")
 	}
@@ -68,15 +69,16 @@ func HostGet(domainname string) (string, error) {
 }
 
 func TargetAddress(d string) (string, error) {
-	h, ok := HostDB[d]
+	c := confManager.Get()
+	h, ok := c.HostDB[d]
 	if !ok {
 		return "", errors.New("Invalid host")
 	}
-	t, ok := targetDB[h]
+	t, ok := c.TargetDB[h]
 	if !ok {
 		return "", errors.New("Invalid domain")
 	}
-	return t.TargetAddress, nil
+	return t, nil
 }
 
 func SQLInjectionFieldGet(domain string, path string) ([]InspectField, error) {

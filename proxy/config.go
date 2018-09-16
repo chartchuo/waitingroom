@@ -12,3 +12,8 @@ const BucketTimeout = time.Minute
 const BlockTime = time.Second * 15
 
 //WAF
+
+type Config struct {
+	HostDB   map[string]string `yaml:"hostdb,omitempty`
+	TargetDB map[string]string `yaml:"targetdb,omitempty`
+}

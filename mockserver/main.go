@@ -7,8 +7,31 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const configFile = "config/config.yml"
+
 func main() {
-	confManager := NewMutexConfigManager(loadConfig("config/config.yml"))
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		log.Printf("ERROR: %v", err)
+	}
+	confManager := NewMutexConfigManager(conf)
+	watcher, err := WatchFile(configFile, time.Second*5, func() {
+		log.Printf("Configfile Updated\n")
+		conf, err := loadConfig(configFile)
+		if err != nil {
+			log.Printf("ERROR: %v", err)
+		} else {
+			confManager.Set(conf)
+		}
+	})
+	if err != nil {
+		log.Fatalf("ERROR: %v", err)
+	}
+
+	defer func() {
+		watcher.Close()
+		confManager.Close()
+	}()
 
 	r := gin.Default()
 	r.GET("/", func(c *gin.Context) {
@@ -48,18 +71,6 @@ func main() {
 	r.GET("/error", func(c *gin.Context) {
 		c.Err()
 	})
-
-	watcher, err := WatchFile("config/config.yml", time.Second*5, func() {
-		log.Printf("Configfile Updated\n")
-		conf := loadConfig("config/config.yml")
-		confManager.Set(conf)
-	})
-	check(err)
-
-	defer func() {
-		watcher.Close()
-		confManager.Close()
-	}()
 
 	r.Run(":8888")
 

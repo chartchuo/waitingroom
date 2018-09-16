@@ -6,15 +6,22 @@ metadata:
     kubernetes.io/ingress.class: traefik
 spec:
   rules:
-  # - host: proxy.minikube
-  #   http:
-  #     paths:
-  #     - backend:
-  #         serviceName: proxy
-  #         servicePort: 8080
   - host: mockserver
     http:
       paths:
       - backend:
           serviceName: proxy
           servicePort: 8080
+  - host: www.apichart.me
+    http:
+      paths:
+      - backend:
+          serviceName: proxy
+          servicePort: 8080
+  - host: apichart.me
+    http:
+      paths:
+      - backend:
+          serviceName: proxy
+          servicePort: 8080
+          

@@ -25,3 +25,13 @@ spec:
           limits:
             memory: "64Mi"
             cpu: "100m"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: proxy
+          items:
+          - key: config.yml
+            path: config.yml

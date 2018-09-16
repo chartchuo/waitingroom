@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -191,25 +192,45 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	proxyRequest(w, &webdata)
 }
 
-func init() {
-	// applog := &lumberjack.Logger{
-	// 	Filename:   "log/app.log",
-	// 	MaxSize:    100, // megabytes
-	// 	MaxBackups: 30,
-	// 	MaxAge:     1, //days
-	// 	Compress:   true,
-	// }
+const configFile = "config/config.yml"
 
-	// log.SetOutput(applog)
-}
+var confManager *MutexConfigManager
+
 func main() {
 	log.Println("Proxy started.")
+
+	conf, err := loadConfig(configFile)
+	if err != nil {
+		log.Printf("ERROR: %v\n", err)
+	}
+	fmt.Printf("config: %v\n", conf)
+
+	confManager = NewMutexConfigManager(conf)
+	watcher, err := WatchFile(configFile, time.Second*5, func() {
+		log.Printf("Configfile Updated\n")
+		conf, err := loadConfig(configFile)
+		if err != nil {
+			log.Printf("ERROR: %v", err)
+		} else {
+			confManager.Set(conf)
+			fmt.Printf("config: %v\n", conf)
+		}
+	})
+	if err != nil {
+		log.Fatalf("ERROR: %v", err)
+	}
+
+	defer func() {
+		watcher.Close()
+		confManager.Close()
+	}()
+
 	http.HandleFunc("/", mainHandler)
 
 	// for ubuntu system can't listen port 80 workaround by listen port 8080 instead and NAT with command
 	// sudo iptables -t nat -I OUTPUT -p tcp -d 127.0.0.1 --dport 80 -j REDIRECT --to-ports 8080
 
-	err := http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", nil)
 
 	log.Fatal(err)
 }
