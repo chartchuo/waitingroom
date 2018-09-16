@@ -23,7 +23,7 @@ var HostDB = map[string]string{
 	"www.pantip.com:80":    "pantip.com",
 	"pantip.com:80":        "pantip.com",
 	"m.pantip.com:80":      "pantip.com",
-	"mock:8080":            "mock",
+	"mockserver:80":        "mock",
 }
 
 //map host to target
