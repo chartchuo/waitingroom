@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mockserver
+  name: controller
   labels:
-    app: mockserver
+    app: controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mockserver
+      app: controller
   template:
     metadata:
       labels:
-        app: mockserver
+        app: controller
     spec:
       containers:
-      - name: mockserver
-        image: localhost:5000/mockserver:latest
+      - name: controller
+        image: localhost:5000/controller:latest
         ports:
-        - containerPort: 8888
+        - containerPort: 8080
         resources:
           requests:
             cpu: "20m"
           limits:
-            memory: "16Mi"
+            memory: "64Mi"
             cpu: "100m"
  

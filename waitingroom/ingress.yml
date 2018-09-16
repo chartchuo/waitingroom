@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: waitingroom
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: waitingroom.minikube
+    http:
+      paths:
+      - backend:
+          serviceName: waitingroom
+          servicePort: 8080

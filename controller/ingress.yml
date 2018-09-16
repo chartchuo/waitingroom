@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: controller
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: controller.minikube
+    http:
+      paths:
+      - backend:
+          serviceName: controller
+          servicePort: 8080

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/pmylund/go-cache"
-	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
 var BlackList = cache.New(BlockTime, IntervalTime)
@@ -72,11 +71,12 @@ func proxyRequestOld(w http.ResponseWriter, d *WebInspectData) {
 
 	client.Transport = transport
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
 
 	if err != nil {
 		log.Println(err)
 	}
+	defer resp.Body.Close()
+
 	for k := range resp.Header {
 		w.Header().Set(k, resp.Header.Get(k))
 	}
@@ -110,11 +110,12 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 	//client.Transport = transport
 	//resp, err := client.Do(req)
 	resp, err := transport.RoundTrip(req)
-	defer resp.Body.Close()
-
 	if err != nil {
 		log.Println(err)
+		return
 	}
+	defer resp.Body.Close()
+
 	for k := range resp.Header {
 		w.Header().Set(k, resp.Header.Get(k))
 	}
@@ -150,7 +151,7 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	host, err := HostGet(r.Host)
 
 	if err != nil {
-		log.Printf("BLOCK RemoteAddress:%v,RemoteHost:%v,TargetHost:%v,Msg:%v", r.RemoteAddr, r.Host, err)
+		log.Printf("BLOCK RemoteAddress:%v,TargetHost:%v,Msg:%v", r.RemoteAddr, r.Host, err)
 		normalBlock(w)
 		return
 	}
@@ -191,17 +192,18 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
-	applog := &lumberjack.Logger{
-		Filename:   "log/app.log",
-		MaxSize:    100, // megabytes
-		MaxBackups: 30,
-		MaxAge:     1, //days
-		Compress:   true,
-	}
+	// applog := &lumberjack.Logger{
+	// 	Filename:   "log/app.log",
+	// 	MaxSize:    100, // megabytes
+	// 	MaxBackups: 30,
+	// 	MaxAge:     1, //days
+	// 	Compress:   true,
+	// }
 
-	log.SetOutput(applog)
+	// log.SetOutput(applog)
 }
 func main() {
+	log.Println("Proxy started.")
 	http.HandleFunc("/", mainHandler)
 
 	// for ubuntu system can't listen port 80 workaround by listen port 8080 instead and NAT with command

@@ -5,7 +5,7 @@ metadata:
   labels:
     app: proxy
 spec:
-  replicas: 10
+  replicas: 1
   selector:
     matchLabels:
       app: proxy
@@ -19,3 +19,9 @@ spec:
         image: localhost:5000/proxy:latest
         ports:
         - containerPort: 8080
+        resources:
+          requests:
+            cpu: "20m"
+          limits:
+            memory: "64Mi"
+            cpu: "100m"

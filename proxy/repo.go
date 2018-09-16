@@ -30,7 +30,7 @@ var HostDB = map[string]string{
 var targetDB = map[string]Target{
 	"chartchuo.com": {TargetAddress: "58.11.248.160:80"},
 	"pantip.com":    {TargetAddress: "203.151.13.167:80"},
-	"mock":          {TargetAddress: "localhost:8888"},
+	"mock":          {TargetAddress: "mockserver:8888"},
 }
 
 //map host+path to sqli

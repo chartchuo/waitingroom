@@ -1,4 +1,4 @@
-service=proxy
+service=waitingroom
 build: 
 	go build
 	docker build -t localhost:5000/$(service) .
