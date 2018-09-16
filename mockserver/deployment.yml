@@ -25,4 +25,17 @@ spec:
           limits:
             memory: "16Mi"
             cpu: "100m"
- 
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: mockserver
+          items:
+          # - key: ui.properties
+          #   path: ui.properties
+          # - key: game.properties
+          #   path: game.properties
+          - key: config.yml
+            path: config.yml
