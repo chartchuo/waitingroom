@@ -19,6 +19,8 @@ var confManager *MutexConfigManager
 func main() {
 	log.Println("Proxy started.")
 
+	go respTimePoller()
+
 	conf, err := loadConfig(configFile)
 	if err != nil {
 		log.Printf("ERROR: %v\n", err)
