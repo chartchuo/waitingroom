@@ -7,6 +7,7 @@ clean:
 	kubectl delete deployment proxy
 	kubectl delete service proxy
 	kubectl delete ingress proxy
+	kubectl delete hpa proxy
 
 push:
 	docker push localhost:5000/proxy
@@ -15,3 +16,6 @@ deploy:
 	kubectl apply -f deployment.yml
 	kubectl apply -f service.yml 
 	kubectl apply -f ingress.yml
+
+autoscale:
+	kubectl autoscale deployment proxy --min=2 --max=10 --cpu-percent=50

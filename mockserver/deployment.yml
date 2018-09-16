@@ -16,6 +16,13 @@ spec:
     spec:
       containers:
       - name: mockserver
-        image: chartchuo/mockserver:latest
+        image: localhost:5000/mockserver:latest
         ports:
         - containerPort: 8888
+        resources:
+          requests:
+            cpu: "20m"
+          limits:
+            memory: "16Mi"
+            cpu: "100m"
+ 
