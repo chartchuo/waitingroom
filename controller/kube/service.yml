@@ -10,3 +10,5 @@ spec:
     targetPort: 8080
     protocol: TCP
     name: http
+  clusterIP: None
+

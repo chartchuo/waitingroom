@@ -1,0 +1,83 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"proxy"},"name":"proxy","namespace":"default"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"proxy"}},"template":{"metadata":{"labels":{"app":"proxy"}},"spec":{"containers":[{"image":"localhost:5000/proxy:latest","name":"proxy","ports":[{"containerPort":8080}],"resources":{"limits":{"cpu":"100m","memory":"64Mi"},"requests":{"cpu":"20m"}},"volumeMounts":[{"mountPath":"/app/config","name":"config-volume"}]}],"volumes":[{"configMap":{"items":[{"key":"config.yml","path":"config.yml"}],"name":"proxy"},"name":"config-volume"}]}}}}
+  creationTimestamp: 2018-09-16T12:13:31Z
+  generation: 2
+  labels:
+    app: proxy
+  name: proxy
+  namespace: default
+  resourceVersion: "98604"
+  selfLink: /apis/extensions/v1beta1/namespaces/default/deployments/proxy
+  uid: ed798044-b9a9-11e8-b774-0800278cd936
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: proxy
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: proxy
+    spec:
+      containers:
+      - image: localhost:5000/proxy:latest
+        imagePullPolicy: Always
+        name: proxy
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 20m
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /app/config
+          name: config-volume
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: config.yml
+            path: config.yml
+          name: proxy
+        name: config-volume
+status:
+  conditions:
+  - lastTransitionTime: 2018-09-16T12:13:31Z
+    lastUpdateTime: 2018-09-16T12:13:43Z
+    message: ReplicaSet "proxy-8bbd9cfc9" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  - lastTransitionTime: 2018-09-16T14:09:04Z
+    lastUpdateTime: 2018-09-16T14:09:04Z
+    message: Deployment does not have minimum availability.
+    reason: MinimumReplicasUnavailable
+    status: "False"
+    type: Available
+  observedGeneration: 2
+  replicas: 10
+  unavailableReplicas: 10
+  updatedReplicas: 10
