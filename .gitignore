@@ -3,3 +3,5 @@ proxy/proxy
 mockserver/mockserver
 waitingroom/waitingroom
 controller/controller
+advisor/advisor
+worker/worker

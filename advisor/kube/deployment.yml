@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller
+  name: advisor
   labels:
-    app: controller
+    app: advisor
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: controller
+      app: advisor
   template:
     metadata:
       labels:
-        app: controller
+        app: advisor
     spec:
       containers:
-      - name: controller
-        image: localhost:5000/controller:latest
+      - name: advisor
+        image: localhost:5000/advisor:latest
         ports:
         - containerPort: 8080
         resources:

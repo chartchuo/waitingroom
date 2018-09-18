@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: proxy
+  name: worker
 data:
   config.yml: |
     hostdb:

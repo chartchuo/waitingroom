@@ -1,4 +1,4 @@
-service=proxy
+service=worker
 build: 
 	go build
 	docker build -t localhost:5000/$(service) .
@@ -30,4 +30,4 @@ a: clean build push deploy
 
 r:
 	go build
-	./proxy
+	./$(service)

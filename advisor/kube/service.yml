@@ -1,10 +1,10 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: controller
+  name: advisor
 spec:
   selector:
-    app: controller
+    app: advisor
   ports:
   - port: 8080
     targetPort: 8080

@@ -1,10 +1,10 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: proxy
+  name: worker
 spec:
   selector:
-    app: proxy
+    app: worker
   ports:
   - port: 8080
     targetPort: 8080

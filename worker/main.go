@@ -19,7 +19,7 @@ var confManager *MutexConfigManager
 func main() {
 	log.Println("Proxy started.")
 
-	// go respTimePoller()
+	go respTimePoller()
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
