@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// milisec
+// Reponse time unit in milisec
 var inRespTime = make(chan int, 10)
 var avgRespTime int
 
@@ -21,11 +21,11 @@ func respTimePoller() {
 	defer conn.Close()
 
 	client := adv.NewAdvServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// defer cancel()
 
 	var sum, count int
-	tick := time.Tick(time.Second * 10)
+	tick := time.Tick(time.Second * 5)
 	for {
 		select {
 		case r := <-inRespTime:
@@ -37,7 +37,7 @@ func respTimePoller() {
 
 			log.Println("start call grps")
 			stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
-			advd, err := client.Update(ctx, stat)
+			advd, err := client.Update(context.TODO(), stat)
 
 			if err != nil {
 				log.Printf("could not get advise: %v", err)
