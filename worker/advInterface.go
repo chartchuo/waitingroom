@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// milisec
+// Reponse time unit in milisec
 var inRespTime = make(chan int, 10)
 var avgRespTime int
 
@@ -24,7 +24,7 @@ func respTimePoller() {
 	ctx := context.Background()
 
 	var sum, count int
-	tick := time.Tick(time.Second * 10)
+	tick := time.Tick(time.Second * 5)
 	for {
 		select {
 		case r := <-inRespTime:
@@ -32,6 +32,7 @@ func respTimePoller() {
 			count++
 			avgRespTime = sum / count
 		case <-tick:
+			//todo non blocking by adding go routine and channel
 			log.Printf("sum: %v, count, %v", sum, count)
 
 			log.Println("start call grps")

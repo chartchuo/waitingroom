@@ -8,8 +8,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 const configFile = "config/config.yml"
@@ -47,12 +48,15 @@ func main() {
 		confManager.Close()
 	}()
 
-	http.HandleFunc("/", mainHandler)
+	r := gin.Default()
+	r.Any("/", ginHandlerFunc)
+	r.Run(":8080")
+	// http.HandleFunc("/", mainHandler)
 
 	// for ubuntu system can't listen port 80 workaround by listen port 8080 instead and NAT with command
 	// sudo iptables -t nat -I OUTPUT -p tcp -d 127.0.0.1 --dport 80 -j REDIRECT --to-ports 8080
 
-	err = http.ListenAndServe(":8080", nil)
+	// err = http.ListenAndServe(":8080", nil)
 
 	log.Fatal(err)
 }
