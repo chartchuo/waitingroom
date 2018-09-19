@@ -21,8 +21,7 @@ func respTimePoller() {
 	defer conn.Close()
 
 	client := adv.NewAdvServiceClient(conn)
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	// defer cancel()
+	ctx := context.Background()
 
 	var sum, count int
 	tick := time.Tick(time.Second * 5)
@@ -33,11 +32,12 @@ func respTimePoller() {
 			count++
 			avgRespTime = sum / count
 		case <-tick:
+			//todo non blocking by adding go routine and channel
 			log.Printf("sum: %v, count, %v", sum, count)
 
 			log.Println("start call grps")
 			stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
-			advd, err := client.Update(context.TODO(), stat)
+			advd, err := client.Update(ctx, stat)
 
 			if err != nil {
 				log.Printf("could not get advise: %v", err)
