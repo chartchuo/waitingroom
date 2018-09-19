@@ -14,7 +14,7 @@ type server struct {
 }
 
 func (s *server) Update(c context.Context, r *adv.RequestStat) (*adv.AdvData, error) {
-	log.Println(r)
+	log.Println(r.Sum, r.Count)
 	return &adv.AdvData{}, nil
 }
 

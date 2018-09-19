@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -98,7 +99,7 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 		Dial: cgDial,
 	}
 
-	// startTime := time.Now()
+	startTime := time.Now()
 
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
@@ -107,10 +108,10 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 	}
 	defer resp.Body.Close()
 
-	// diff := time.Now().Sub(startTime)
-	// inRespTime <- int(diff / time.Millisecond)
+	diff := time.Now().Sub(startTime)
+	inRespTime <- int(diff / time.Millisecond)
 
-	// log.Println(avgRespTime)
+	log.Println(avgRespTime)
 
 	for k := range resp.Header {
 		w.Header().Set(k, resp.Header.Get(k))

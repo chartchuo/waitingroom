@@ -21,8 +21,7 @@ func respTimePoller() {
 	defer conn.Close()
 
 	client := adv.NewAdvServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	ctx := context.Background()
 
 	var sum, count int
 	tick := time.Tick(time.Second * 10)

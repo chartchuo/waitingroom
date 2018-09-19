@@ -5,3 +5,4 @@ waitingroom/waitingroom
 controller/controller
 advisor/advisor
 worker/worker
+*.exe
