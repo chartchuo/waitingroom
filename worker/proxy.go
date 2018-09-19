@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -39,69 +40,31 @@ func newClientID() string {
 	return uuid.NewV5(uuid.NamespaceURL, uuidNameSpace).String()
 }
 
-func proxyRequestOld(w http.ResponseWriter, d *WebInspectData) {
-	client := &http.Client{}
-	r := d.R
-	url := "http://" + r.Host + r.URL.Path
-
-	//todo log level
-	log.Println(r.RemoteAddr + " " + r.Method + " " + url)
-	var req *http.Request
-	if d.RequestBuffered {
-		req, _ = http.NewRequest(r.Method, url, bytes.NewReader(d.BodyBuf))
-	} else {
-		req, _ = http.NewRequest(r.Method, url, d.R.Body)
-	}
-
-	for k := range r.Header {
-		req.Header.Set(k, r.Header.Get(k))
-	}
-
-	var transport = &http.Transport{
-		Dial: cgDial,
-	}
-
-	client.Transport = transport
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-	}
-	defer resp.Body.Close()
-
-	for k := range resp.Header {
-		w.Header().Set(k, resp.Header.Get(k))
-	}
-
-	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
-
-}
+var transport = &http.Transport{}
+var client = &http.Client{Timeout: time.Second * 2}
 
 func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
-	//client := &http.Client{}
 	r := d.R
 	url := "http://" + r.Host + r.URL.Path
 
 	//todo log level
 	log.Println(r.RemoteAddr + " " + r.Method + " " + url)
 	var req *http.Request
-	if d.RequestBuffered {
-		req, _ = http.NewRequest(r.Method, url, bytes.NewReader(d.BodyBuf))
-	} else {
-		req, _ = http.NewRequest(r.Method, url, d.R.Body)
-	}
+	req, _ = http.NewRequest(r.Method, url, d.R.Body)
 
 	for k := range r.Header {
 		req.Header.Set(k, r.Header.Get(k))
 	}
 
-	var transport = &http.Transport{
-		Dial: cgDial,
-	}
+	// var transport = &http.Transport{
+	// 	Dial: cgDial,
+	// }
 
 	startTime := time.Now()
 
 	resp, err := transport.RoundTrip(req)
+	// resp, err := http.Get(url)
+	// resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
@@ -119,6 +82,8 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
+
+	resp.Body.Close()
 
 }
 
@@ -156,4 +121,8 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	webdata.R = r
 
 	proxyRequest(w, &webdata)
+}
+
+func ginHandlerFunc(c *gin.Context) {
+	mainHandler(c.Writer, c.Request)
 }
