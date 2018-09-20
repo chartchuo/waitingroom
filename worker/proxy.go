@@ -6,12 +6,8 @@ import (
 	"net"
 	"net/http"
 	"time"
-<<<<<<< HEAD
-=======
 
 	"github.com/gin-gonic/gin"
->>>>>>> dc9ce660c91b819f172fdb5a8e090a2fb8ce61a4
-
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -30,7 +26,7 @@ func unknowHost(w http.ResponseWriter) {
 	http.Error(w, "Unknow Host.", http.StatusUnauthorized)
 }
 
-func cgDial(network, address string) (net.Conn, error) {
+func ccDial(network, address string) (net.Conn, error) {
 	var d net.Dialer
 	newAddress, err := TargetAddress(address)
 	if err != nil {
@@ -43,8 +39,9 @@ func newClientID() string {
 	return uuid.NewV5(uuid.NamespaceURL, uuidNameSpace).String()
 }
 
-var transport = &http.Transport{}
-var client = &http.Client{Timeout: time.Second * 2}
+var transport = &http.Transport{
+	Dial: ccDial,
+}
 
 func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 	r := d.R
@@ -66,8 +63,6 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 	startTime := time.Now()
 
 	resp, err := transport.RoundTrip(req)
-	// resp, err := http.Get(url)
-	// resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
