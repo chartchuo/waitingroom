@@ -1,30 +1,17 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/gin-gonic/gin"
-	uuid "github.com/satori/go.uuid"
 )
-
-const cookieClientIDname = "ccuuid"
-const uuidNameSpace = "ccuuid"
-
-func validateClientID(id string) bool {
-	_, err := uuid.FromString(id)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-func unknowHost(w http.ResponseWriter) {
-	http.Error(w, "Unknow Host.", http.StatusUnauthorized)
-}
 
 func ccDial(network, address string) (net.Conn, error) {
 	var d net.Dialer
@@ -35,22 +22,18 @@ func ccDial(network, address string) (net.Conn, error) {
 	return d.Dial(network, newAddress)
 }
 
-func newClientID() string {
-	return uuid.NewV5(uuid.NamespaceURL, uuidNameSpace).String()
-}
-
 var transport = &http.Transport{
 	Dial: ccDial,
 }
 
-func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
-	r := d.R
+func proxyRequest(w http.ResponseWriter, r *http.Request) {
+	// r := d.R
 	url := "http://" + r.Host + r.URL.Path
 
 	//todo log level
 	log.Println(r.RemoteAddr + " " + r.Method + " " + url)
 	var req *http.Request
-	req, _ = http.NewRequest(r.Method, url, d.R.Body)
+	req, _ = http.NewRequest(r.Method, url, r.Body)
 
 	for k := range r.Header {
 		req.Header.Set(k, r.Header.Get(k))
@@ -83,39 +66,60 @@ func proxyHandler(c *gin.Context) {
 	w := c.Writer
 	r := c.Request
 
-	//retrieve client information
-	var webdata WebInspectData
-	newClient := false
-	clientIP, _, _ := net.SplitHostPort(r.RemoteAddr)
-	webdata.ClientIP = clientIP
+	host, err := hostGet(r.Host)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"message": "unknow host.",
+		})
+		return
+	}
 
-	reqCookie, err := r.Cookie(cookieClientIDname)
+	newClient := false
+	client := clientData{}
+
+	reqCookie, err := r.Cookie(cookieName)
 	if err != nil {
 		newClient = true
-	} else if validateClientID(reqCookie.Value) {
-		newClient = true
+	} else {
+		client := clientData{}
+		j, err := base64.StdEncoding.DecodeString(reqCookie.Value)
+		if err != nil {
+			newClient = true
+		}
+		err = json.Unmarshal(j, &client)
+		if err != nil {
+			newClient = true
+		}
 	}
 
 	// verify cookie if no cookie generate new and redirect to waiting room
 	if newClient {
-		webdata.ClientID = newClientID()
+		client = newClientData(host)
+		j, err := json.Marshal(client)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"message": "Error: Generate client data.",
+			})
+			return
+		}
+		str := base64.StdEncoding.EncodeToString([]byte(j))
+		// webdata.ClientID = newClientID()
 		cookie := http.Cookie{
-			Name:     cookieClientIDname,
-			Value:    webdata.ClientID,
+			Name:     cookieName,
+			Value:    str,
 			SameSite: http.SameSiteStrictMode,
+			// MaxAge:   3600, //one hour
+			MaxAge: 600, //todo for testing only
 		}
 		http.SetCookie(w, &cookie)
-		// c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
+		c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
 	}
 
-	//todo move to top to support multi host
-	host, err := hostGet(r.Host)
-	if err != nil {
-		unknowHost(w)
-		return
-	}
-	webdata.Host = host
-	webdata.R = r
+	//todo if no queue do proxy
 
-	proxyRequest(w, &webdata)
+	//todo if not open redirec to wait
+
+	//todo if not qtime redirect to wait
+
+	proxyRequest(w, r)
 }

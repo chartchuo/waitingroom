@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,26 +13,30 @@ const waitRoomPath = "/ccwait"
 
 var confManager *MutexConfigManager
 
+func init() {
+	log.SetLevel(log.DebugLevel)
+}
+
 func main() {
 	log.Println("Proxy started.")
 
-	go respTimePoller()
+	go advisorPoller()
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
-		log.Printf("ERROR: %v\n", err)
+		log.Errorf("ERROR: %v\n", err)
 	}
-	fmt.Printf("config: %v\n", conf)
+	log.Debugf("config: %v\n", conf)
 
 	confManager = NewMutexConfigManager(conf)
 	watcher, err := WatchFile(configFile, time.Second*5, func() {
 		log.Printf("Configfile Updated\n")
 		conf, err := loadConfig(configFile)
 		if err != nil {
-			log.Printf("ERROR: %v", err)
+			log.Errorf("ERROR: %v", err)
 		} else {
 			confManager.Set(conf)
-			fmt.Printf("config: %v\n", conf)
+			log.Debugf("config: %v\n", conf)
 		}
 	})
 	if err != nil {

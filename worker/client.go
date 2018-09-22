@@ -1,31 +1,38 @@
 package main
 
 import (
-	"fmt"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/hex"
 	"math/rand"
 	"time"
 
-	cache "github.com/pmylund/go-cache"
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 const qSpanTime = time.Minute //one minute
+const cookieName = "ccwait"
+const uuidNameSpace = "ccwait"
+const key = "D3NRX?uVtbJEq_HHLQ5Y"
 
 type clientData struct {
-	server       string
-	arriveTime   time.Time
-	qTime        time.Time
-	nextAttemp   time.Time
-	lastAccess   time.Time
-	refreshCount int
-	mac          string
+	ID           string
+	Server       string
+	ArriveTime   time.Time
+	QTime        time.Time
+	NextAttemp   time.Time
+	LastAccess   time.Time
+	ReleaseTime  time.Time
+	RefreshCount int
+	MAC          string //base on ID,QTime and secret for pass to main system only
+	Authen       string //base on ID,ReleaseTime and secret for check every request to main system
 }
 
-var clientCache *cache.Cache
-
-func init() {
-	clientCache = cache.New(5*time.Minute, 10*time.Minute)
-
+func newClientID() string {
+	return uuid.NewV5(uuid.NamespaceURL, uuidNameSpace).String()
 }
+
 func newClientData(server string) clientData {
 	a := time.Now()
 	c := confManager.Get().ServerConfig[server]
@@ -41,13 +48,32 @@ func newClientData(server string) clientData {
 	} else {
 		q = a
 	}
-	fmt.Println(c.OpenTime)
-	return clientData{
-		server:       server,
-		arriveTime:   a,
-		qTime:        q,
-		nextAttemp:   q,
-		lastAccess:   a,
-		refreshCount: 0,
+	log.Debugln(c.OpenTime)
+	client := clientData{
+		ID:           newClientID(),
+		Server:       server,
+		ArriveTime:   a,
+		QTime:        q,
+		NextAttemp:   q,
+		LastAccess:   a,
+		RefreshCount: 0,
 	}
+	client.genMAC()
+	return client
+}
+
+func (c *clientData) isValid() bool {
+	mac := hmac.New(sha1.New, []byte(key))
+	mac.Write([]byte(c.ID))
+	b, _ := c.QTime.MarshalBinary()
+	mac.Write(b)
+	return c.MAC == hex.EncodeToString(mac.Sum(nil))
+}
+
+func (c *clientData) genMAC() {
+	mac := hmac.New(sha1.New, []byte(key))
+	mac.Write([]byte(c.ID))
+	b, _ := c.QTime.MarshalBinary()
+	mac.Write(b)
+	c.MAC = hex.EncodeToString(mac.Sum(nil))
 }

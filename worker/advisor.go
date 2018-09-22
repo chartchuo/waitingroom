@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"apichart.me/waitingroom/advisor/adv"
 	"google.golang.org/grpc"
@@ -13,7 +14,7 @@ import (
 var inRespTime = make(chan int, 10)
 var avgRespTime int
 
-func respTimePoller() {
+func advisorPoller() {
 	conn, err := grpc.Dial("advisor:6000", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("ERROR connect to advisor: %v", err)

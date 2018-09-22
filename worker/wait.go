@@ -13,7 +13,9 @@ const (
 )
 
 func waitHandler(c *gin.Context) {
-	//random wait time
+	//todo if q time add MAC2 redirect to main site
+
+	//todo mock random wait time
 	t := time.Second * 40
 	r := t / 2
 	if r < minRefreshDuration {
