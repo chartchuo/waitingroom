@@ -28,7 +28,7 @@ func unknowHost(w http.ResponseWriter) {
 
 func ccDial(network, address string) (net.Conn, error) {
 	var d net.Dialer
-	newAddress, err := TargetAddress(address)
+	newAddress, err := targetAddress(address)
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +56,6 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 		req.Header.Set(k, r.Header.Get(k))
 	}
 
-	// var transport = &http.Transport{
-	// 	Dial: cgDial,
-	// }
-
 	startTime := time.Now()
 
 	resp, err := transport.RoundTrip(req)
@@ -70,9 +66,7 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 	defer resp.Body.Close()
 
 	diff := time.Now().Sub(startTime)
-	inRespTime <- int(diff / time.Millisecond)
-
-	log.Println(avgRespTime)
+	inRespTime <- int(diff / time.Microsecond)
 
 	for k := range resp.Header {
 		w.Header().Set(k, resp.Header.Get(k))
@@ -85,7 +79,9 @@ func proxyRequest(w http.ResponseWriter, d *WebInspectData) {
 
 }
 
-func mainHandler(w http.ResponseWriter, r *http.Request) {
+func proxyHandler(c *gin.Context) {
+	w := c.Writer
+	r := c.Request
 
 	//retrieve client information
 	var webdata WebInspectData
@@ -110,7 +106,7 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &cookie)
 	}
 
-	host, err := HostGet(r.Host)
+	host, err := hostGet(r.Host)
 	if err != nil {
 		unknowHost(w)
 		return
@@ -119,8 +115,4 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	webdata.R = r
 
 	proxyRequest(w, &webdata)
-}
-
-func ginHandlerFunc(c *gin.Context) {
-	mainHandler(c.Writer, c.Request)
 }

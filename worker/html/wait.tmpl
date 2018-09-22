@@ -1,0 +1,113 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<style>
+.infobox{
+    font: 1.5em arial, sans-serif;
+    text-align: center;
+}
+body {
+    background-color: darkblue;
+    color: white;
+}
+h1 {
+    color: yellow;
+}
+a {
+    color: yellow;
+}
+.remaintime {
+    font: 3em arial, sans-serif;
+    font-weight: bold;
+    text-align: center;
+}
+.refreshtime {
+    font: 0.5em arial, sans-serif;
+    text-align: center;
+}
+.warning {
+    color: orange;
+}
+.blink {
+	animation: blink 1s linear infinite;
+    color: red;
+}
+@keyframes blink {
+	0% { opacity: 1; }
+	50% { opacity: 0.5; }
+	100% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="infobox">
+<h1>Waiting Room.</h1>
+<p>We are in the queue. Please wait until we ready to serve.</p>
+<p><b>Do not press F5 or refresh.</b></p>
+<p>Estimate wait time may vary depend on number of users and server load.</p>
+<p class="warning">{{.warningText}}</p>
+<p id="remaintime" class="remaintime"></p>
+<p id="refreshtime" class="refreshtime"></p>
+<p id="targetlink" class="refreshtime" style='display:none;'>If browser not automatic refresh <a href="{{.target}}">Click to Continue</a></p>
+<p>{{.messaage}}</p>
+</div>
+
+<script>
+// Set the date we're counting down to
+var countDown = new Date().getTime()+{{.remaintime}}; //milisec
+var refCountDown = new Date().getTime()+{{.refreshtime}}; //milisec
+
+function pad(num, size) {
+    var s = "000000000" + num;
+    return s.substr(s.length-size);
+}
+function countDownString(t){
+    var d = Math.floor(t / (1000 * 60 * 60 * 24));
+    var h = Math.floor((t % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    var m = Math.floor((t % (1000 * 60 * 60)) / (1000 * 60));
+    var sc = Math.floor((t % (1000 * 60)) / 1000);
+    var s =''
+    if (d > 0) {s = s + d+'d ';}
+    if (h>0) {s = s + h+':';}
+    if (m<0) {m=0}
+    if (sc<0){sc=0}
+    s = s + pad(m,2) +':'+pad(sc,2);
+    return s
+}
+
+var isblink = false
+// Update the count down every 1 second
+var x = setInterval(function() {
+
+    // Get todays date and time
+    var now = new Date().getTime();
+    
+    // Find the distance between now and the count down 
+    var cstr = countDownString(countDown - now)
+    var rstr = countDownString(refCountDown - now)
+
+    document.getElementById("refreshtime").innerHTML = rstr+" to automatic refresh";
+    document.getElementById("remaintime").innerHTML = cstr;
+
+    // If the count down is over, connect to target 
+    if (refCountDown - now < 0) {
+        clearInterval(x);
+        document.getElementById("refreshtime").innerHTML = "REFRESHING";
+        document.getElementById("targetlink").style.display = '';
+        window.location = {{.target}}; 
+    }
+    if (countDown - now < 30000 && isblink==false) {
+        document.getElementById("remaintime").classList.add("blink");
+        isblink = true;
+    }
+
+    // display manual refresh link
+    if (refCountDown - now < 4000) {
+        document.getElementById("targetlink").style.display = '';
+    }
+}, 1000);
+</script>
+
+</body>
+</html>

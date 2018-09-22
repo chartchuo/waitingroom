@@ -2,61 +2,38 @@ package main
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 )
 
-type Host struct {
-	Name string
+//Config main repository
+type Config struct {
+	HostDB       map[string]string       `yaml:"hostdb,omitempty"`
+	TargetDB     map[string]string       `yaml:"targetdb,omitempty"`
+	ServerConfig map[string]ServerConfig `yaml:"serverconfig,omitempty"`
 }
 
-// type Target struct {
-// 	TargetAddress string
-// }
+//InspecResult inspec result from ddos and waf
+type InspecResult int
 
-type InspectField struct {
-	Field string
+const (
+	inspecOk         InspecResult = 0
+	inspecError      InspecResult = 3
+	inspecSuspicious InspecResult = 7
+	inspedAttack     InspecResult = 7
+)
+
+//WebInspectData inspec data for ddos and waf
+type WebInspectData struct {
+	Host     string
+	ClientIP string
+	ClientID string //"" == new client
+	R        *http.Request
+	// RequestBuffered bool
+	BodyBuf []byte
 }
 
-//map url to host
-// var HostDB = map[string]string{
-// 	"chartchuo.noip.me:80": "chartchuo.com",
-// 	"www.pantip.com:80":    "pantip.com",
-// 	"pantip.com:80":        "pantip.com",
-// 	"m.pantip.com:80":      "pantip.com",
-// 	"mockserver:80":        "mock",
-// }
-
-//map host to target
-// var targetDB = map[string]Target{
-// 	"chartchuo.com": {TargetAddress: "58.11.248.160:80"},
-// 	"pantip.com":    {TargetAddress: "203.151.13.167:80"},
-// 	"mock":          {TargetAddress: "mockserver:8888"},
-// }
-
-//map host+path to sqli
-var sqlInjectionDB = map[string]map[string][]InspectField{
-	"pantip.com": {
-		"/search/es/search_tag": {
-			{Field: "q"},
-		},
-	},
-	"chartchuo.com": {
-		"/users/sign_in": {
-			{Field: "user[login]"},
-		},
-	},
-}
-
-//map host+path to sqli
-var xssDB = map[string]map[string][]InspectField{
-	"pantip.com": {
-		"/search/es/search_tag": {
-			{Field: "q"},
-		},
-	},
-}
-
-func HostGet(domainname string) (string, error) {
+func hostGet(domainname string) (string, error) {
 	if !strings.Contains(domainname, ":") {
 		domainname = domainname + ":80"
 	}
@@ -68,7 +45,7 @@ func HostGet(domainname string) (string, error) {
 	return s, nil
 }
 
-func TargetAddress(d string) (string, error) {
+func targetAddress(d string) (string, error) {
 	c := confManager.Get()
 	h, ok := c.HostDB[d]
 	if !ok {
@@ -79,20 +56,4 @@ func TargetAddress(d string) (string, error) {
 		return "", errors.New("Invalid domain")
 	}
 	return t, nil
-}
-
-func SQLInjectionFieldGet(domain string, path string) ([]InspectField, error) {
-	sqli, ok := sqlInjectionDB[domain][path]
-	if !ok {
-		return nil, errors.New("Invalid domain")
-	}
-	return sqli, nil
-}
-
-func XSSFieldGet(domain string, path string) ([]InspectField, error) {
-	xss, ok := xssDB[domain][path]
-	if !ok {
-		return nil, errors.New("Invalid domain")
-	}
-	return xss, nil
 }

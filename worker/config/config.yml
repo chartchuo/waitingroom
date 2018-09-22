@@ -5,3 +5,7 @@ hostdb:
 targetdb:
   mock: 'mockserver:8888'
   loadtest: 'localhost:8888'
+serverconfig:
+  mock:
+    opentime: 2018-09-11 18:00:00
+    maxusers: 100
