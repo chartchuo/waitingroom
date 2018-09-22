@@ -15,7 +15,7 @@ const (
 func waitHandler(c *gin.Context) {
 	//random wait time
 	t := time.Second * 40
-	r := t
+	r := t / 2
 	if r < minRefreshDuration {
 		r = minRefreshDuration
 	} else if r > maxRefreshDuration {
@@ -30,8 +30,10 @@ func waitHandler(c *gin.Context) {
 		"warningText": "test test test",
 		"remaintime":  remaintime,
 		"refreshtime": refreshtime,
-		"target":      "/wait",
+		"target":      waitRoomPath,
 	})
 }
 
-//todo link click not count as f5
+//todo
+//link click not count as f5
+//re queue for f5 user

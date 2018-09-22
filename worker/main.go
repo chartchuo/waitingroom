@@ -1,10 +1,5 @@
 package main
 
-// todo
-// persistent database
-// health check target host
-// admin ui
-
 import (
 	"fmt"
 	"log"
@@ -14,6 +9,7 @@ import (
 )
 
 const configFile = "config/config.yml"
+const waitRoomPath = "/ccwait"
 
 var confManager *MutexConfigManager
 
@@ -48,13 +44,17 @@ func main() {
 		confManager.Close()
 	}()
 
+	serverinit() //todo mock data must be remove
+
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
 	r.Delims("{{", "}}")
 	r.LoadHTMLFiles("html/wait.tmpl")
 
 	r.Any("/", proxyHandler)
-	r.GET("/wait", waitHandler)
+	r.GET(waitRoomPath, waitHandler)
+
 	r.Run(":8080")
 
 	log.Fatal(err)

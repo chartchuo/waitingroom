@@ -96,16 +96,19 @@ func proxyHandler(c *gin.Context) {
 		newClient = true
 	}
 
-	// verify cookie if no cookie generate new
+	// verify cookie if no cookie generate new and redirect to waiting room
 	if newClient {
 		webdata.ClientID = newClientID()
 		cookie := http.Cookie{
-			Name:  cookieClientIDname,
-			Value: webdata.ClientID,
+			Name:     cookieClientIDname,
+			Value:    webdata.ClientID,
+			SameSite: http.SameSiteStrictMode,
 		}
 		http.SetCookie(w, &cookie)
+		// c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
 	}
 
+	//todo move to top to support multi host
 	host, err := hostGet(r.Host)
 	if err != nil {
 		unknowHost(w)
