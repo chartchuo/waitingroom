@@ -8,8 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const appRunMode = "debug"
+
 const configFile = "config/config.yml"
 const waitRoomPath = "/ccwait"
+const serverEntryPath = "/"
 
 var confManager *MutexConfigManager
 
@@ -19,8 +22,6 @@ func init() {
 
 func main() {
 	log.Println("Proxy started.")
-
-	go advisorPoller()
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -48,13 +49,19 @@ func main() {
 		confManager.Close()
 	}()
 
-	serverinit() //todo mock data must be remove
+	go advisorPoller()
 
-	gin.SetMode(gin.ReleaseMode)
+	if appRunMode == "debug" {
+		serverinit() //mock data
+		log.SetLevel(log.DebugLevel)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+		log.SetLevel(log.ErrorLevel)
+	}
 	r := gin.Default()
 
 	r.Delims("{{", "}}")
-	r.LoadHTMLFiles("html/wait.tmpl")
+	r.LoadHTMLFiles("html/wait.tmpl") //limitation: must add multiple file in one command
 
 	r.Any("/", proxyHandler)
 	r.GET(waitRoomPath, waitHandler)

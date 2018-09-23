@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -30,8 +28,7 @@ func proxyRequest(w http.ResponseWriter, r *http.Request) {
 	// r := d.R
 	url := "http://" + r.Host + r.URL.Path
 
-	//todo log level
-	log.Println(r.RemoteAddr + " " + r.Method + " " + url)
+	log.Debugln(r.RemoteAddr + " " + r.Method + " " + url)
 	var req *http.Request
 	req, _ = http.NewRequest(r.Method, url, r.Body)
 
@@ -63,63 +60,37 @@ func proxyRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func proxyHandler(c *gin.Context) {
-	w := c.Writer
-	r := c.Request
 
-	host, err := hostGet(r.Host)
-	if err != nil {
-		c.JSON(200, gin.H{
-			"message": "unknow host.",
-		})
+	client, err := newClientFromC(c)
+	if err != nil { //just return. error messge already response in function
 		return
 	}
 
-	newClient := false
-	client := clientData{}
-
-	reqCookie, err := r.Cookie(cookieName)
-	if err != nil {
-		newClient = true
-	} else {
-		client := clientData{}
-		j, err := base64.StdEncoding.DecodeString(reqCookie.Value)
-		if err != nil {
-			newClient = true
-		}
-		err = json.Unmarshal(j, &client)
-		if err != nil {
-			newClient = true
-		}
-	}
-
-	// verify cookie if no cookie generate new and redirect to waiting room
-	if newClient {
-		client = newClientData(host)
-		j, err := json.Marshal(client)
-		if err != nil {
-			c.JSON(500, gin.H{
-				"message": "Error: Generate client data.",
-			})
+	server := getServerData(client.Server)
+	switch server.Status {
+	case serverStatusNormal:
+		//todo authen
+		client.Status = clientStatusRelease
+		setClientCookie(c, client)
+		proxyRequest(c.Writer, c.Request)
+		return
+	case serverStatusNotOpen:
+		client.Status = clientStatusWait
+		setClientCookie(c, client)
+		c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
+		return
+	case serverStatusWaitRoom:
+		if client.QTime.Before(server.ReleaseTime) {
+			//todo authen
+			client.Status = clientStatusRelease
+			setClientCookie(c, client)
+			proxyRequest(c.Writer, c.Request)
+			return
+		} else {
+			client.Status = clientStatusWait
+			setClientCookie(c, client)
+			c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
 			return
 		}
-		str := base64.StdEncoding.EncodeToString([]byte(j))
-		// webdata.ClientID = newClientID()
-		cookie := http.Cookie{
-			Name:     cookieName,
-			Value:    str,
-			SameSite: http.SameSiteStrictMode,
-			// MaxAge:   3600, //one hour
-			MaxAge: 600, //todo for testing only
-		}
-		http.SetCookie(w, &cookie)
-		c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
 	}
-
-	//todo if no queue do proxy
-
-	//todo if not open redirec to wait
-
-	//todo if not qtime redirect to wait
-
-	proxyRequest(w, r)
 }
