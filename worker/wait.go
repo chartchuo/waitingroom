@@ -27,9 +27,10 @@ func renderWaitPage(c *gin.Context) {
 	remaintime := int(t / time.Millisecond)
 	refreshtime := int(r / time.Millisecond)
 	msg := ""
+	warn := ""
 
 	c.HTML(http.StatusOK, "wait.tmpl", map[string]interface{}{
-		"warningText": "test test test",
+		"warningText": warn,
 		"remaintime":  remaintime,
 		"refreshtime": refreshtime,
 		"target":      waitRoomPath,
