@@ -61,7 +61,7 @@ func main() {
 	r := gin.Default()
 
 	r.Delims("{{", "}}")
-	r.LoadHTMLFiles("html/wait.tmpl") //limitation: must add multiple file in one command
+	r.LoadHTMLFiles("tmpl/wait.tmpl") //limitation: must add multiple file in one command
 
 	r.Any("/", proxyHandler)
 	r.GET(waitRoomPath, waitHandler)

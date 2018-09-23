@@ -34,17 +34,14 @@ func advisorPoller() {
 			avgRespTime = sum / count
 		case <-tick:
 			//todo non blocking by adding go routine and channel
-			// log.Printf("sum: %v, count, %v", sum, count)
 
-			// log.Println("start call grps")
 			stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
 			_, err := client.Update(ctx, stat)
 
 			if err != nil {
-				log.Printf("could not get advise: %v", err)
+				log.Errorf("Can't connect to advise: %v", err)
 				continue
 			}
-			// log.Printf("Advise: %v", advd.ReleaseTime) //todo remove.
 
 			sum = 0
 			count = 0
