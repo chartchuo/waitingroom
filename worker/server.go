@@ -46,7 +46,7 @@ func serverinit() {
 func getServerData(name string) ServerData {
 	s, ok := serverdataDB[name]
 	if !ok {
-		log.Fatal("error server.go getServerData ", name)
+		log.Error("error server.go getServerData ", name)
 	}
 	return s
 }
