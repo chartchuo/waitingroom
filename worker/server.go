@@ -6,6 +6,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//todo add server statistic
+// - 95p response time
+// concurrent users
+
 //ServerConfig for save and load from file
 type ServerConfig struct {
 	OpenTime time.Time `yaml:"opentime,omitempty"`

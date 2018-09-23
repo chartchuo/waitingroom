@@ -1,7 +1,8 @@
 hostdb:
   'mockserver:80': mock
   'mockserver:8080': mock
-  'localhost:8080': mock  
+  'localhost:8080': mock
+  '192.168.1.64:8080': mock  
 targetdb:
   mock: 'mockserver:8888'
 serverconfig:
