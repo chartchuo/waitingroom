@@ -1,0 +1,13 @@
+<!doctype html><style>.infobox{font:1.5em arial,sans-serif;text-align:center}body{background-color:#00008b;color:#fff}h1{color:#ff0}a{color:#ff0}.remaintime{font:3em arial,sans-serif;font-weight:700;text-align:center}.refreshtime{font:.5em arial,sans-serif;text-align:center}.warning{color:orange}.blink{animation:blink 1s linear infinite;color:red}@keyframes blink{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}</style><div class=infobox><h1>Waiting Room.</h1><p>You are in the queue. Please wait until we ready to serve.<p><b>Do not press F5 or refresh.</b><p>Estimate wait time may vary depend on number of users and server load.<p class=warning>{{.warningText}}<p id=remaintime class=remaintime><p id=refreshtime class=refreshtime><p id=targetlink class=refreshtime style=display:none>If browser not automatic refresh <a href={{.target}}>Click to Continue</a><p>{{.messaage}}</div><script>var countDown=new Date().getTime()+{{.remaintime}};var refCountDown=new Date().getTime()+{{.refreshtime}};function pad(num,size){var s="000000000"+num;return s.substr(s.length-size);}
+function countDownString(t){var d=Math.floor(t/(1000*60*60*24));var h=Math.floor((t%(1000*60*60*24))/(1000*60*60));var m=Math.floor((t%(1000*60*60))/(1000*60));var sc=Math.floor((t%(1000*60))/1000);var s=''
+if(d>0){s=s+d+'d ';}
+if(h>0){s=s+h+':';}
+if(m<0){m=0}
+if(sc<0){sc=0}
+s=s+pad(m,2)+':'+pad(sc,2);return s}
+var isblink=false
+var x=setInterval(function(){var now=new Date().getTime();var cstr=countDownString(countDown-now)
+var rstr=countDownString(refCountDown-now)
+document.getElementById("refreshtime").innerHTML=rstr+" to automatic refresh";document.getElementById("remaintime").innerHTML=cstr;if(refCountDown-now<0){clearInterval(x);document.getElementById("refreshtime").innerHTML="REFRESHING";document.getElementById("targetlink").style.display='';window.location={{.target}};}
+if(countDown-now<30000&&isblink==false){document.getElementById("remaintime").classList.add("blink");isblink=true;}
+if(refCountDown-now<4000){document.getElementById("targetlink").style.display='';}},200);</script>

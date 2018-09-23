@@ -8,4 +8,7 @@ data:
       'mockserver:80': mock
     targetdb:
       mock: 'mockserver:8888'
-  
+    serverconfig:
+      mock:
+        opentime: 2018-09-22 19:00:00
+        maxusers: 100
