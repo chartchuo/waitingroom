@@ -7,10 +7,10 @@
     background: #fff;
     margin: 50px auto;
     position: relative;
-    max-width: 1000px;
+    max-width: 900px;
     padding: 50px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-  transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
 }
 
 .leftbox {
@@ -18,7 +18,7 @@
     text-align: center;
     width: 400px;
     position: absolute;
-
+    padding: 40px 0;
 }
 .rightbox {
     font: 1.5em arial, sans-serif;
@@ -30,19 +30,17 @@
 body {
     font: 1rem arial, sans-serif;
     background-color: #eee;
-    color: #111;
+    color: #222;
 }
-
-b {color: #000;}
-
-h1 {color: #111;}
-
+h1 {color: #000;}
+b {color: #222;}
 a {color: #113;}
 
 .remaintime {
     font: 3em arial, sans-serif;
     font-weight: bold;
     text-align: center;
+    margin: 30px auto;
 }
 
 .refreshtime {
@@ -63,6 +61,20 @@ a {color: #113;}
     0% {opacity: 1;}
     50% {opacity: 0.5;}
     100% {opacity: 1;}
+}
+@media (max-width: 900px) {
+    .leftbox{
+        position: unset;
+        margin: 0 auto;
+        padding: 0 0;
+        width: unset;
+    }
+    .rightbox{
+        position: unset;
+        margin: 0 0;
+        padding: 0 0;
+        text-align: center;
+    }
 }
 </style>
 </head>
