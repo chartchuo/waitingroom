@@ -13,14 +13,14 @@
     transition: all 0.3s cubic-bezier(.25,.8,.25,1);
 }
 
-.leftbox {
+.clockbox {
     font: 1.5em arial, sans-serif;
     text-align: center;
     width: 400px;
     position: absolute;
     padding: 40px 0;
 }
-.rightbox {
+.infobox {
     font: 1.5em arial, sans-serif;
     text-align: left;
     margin-left: 400px;
@@ -68,13 +68,13 @@ a {color: #113;}
         padding: 20px 5px;
         margin: 0 auto;
     }
-    .leftbox{
+    .clockbox{
         position: unset;
         margin: 0 auto;
         padding: 0;
         width: unset;
     }
-    .rightbox{
+    .infobox{
         position: unset;
         margin: 0;
         padding: 0;
@@ -86,7 +86,7 @@ a {color: #113;}
 
 <body>
 <div class="container">
-    <div class="leftbox">
+    <div class="clockbox">
     <svg wide="100" height="100" viewBox="0 0 512 512">
         <path fill="#222" d="M256 8C119 8 8 119 8 256s111 248 248 248 248-111 248-248S393 8 256 8zm0 448c-110.5 0-200-89.5-200-200S145.5 56 256 56s200 89.5 200 200-89.5 200-200 200zm61.8-104.4l-84.9-61.7c-3.1-2.3-4.9-5.9-4.9-9.7V116c0-6.6 5.4-12 12-12h32c6.6 0 12 5.4 12 12v141.7l66.8 48.6c5.4 3.9 6.5 11.4 2.6 16.8L334.6 349c-3.9 5.3-11.4 6.5-16.8 2.6z"></path>
     </svg>
@@ -95,7 +95,7 @@ a {color: #113;}
     <p id="targetlink" class="refreshtime" style='display:none;'>If browser not automatic refresh <a href="{{.target}}">Click
             to Continue</a></p>
     </div>
-    <div class="rightbox">
+    <div class="infobox">
         <h1>Waiting Room.</h1>
         <p>You are in the queue. Please wait until we ready to serve.</p>
         <p><b>Do not press F5 or refresh.</b></p>
@@ -105,7 +105,6 @@ a {color: #113;}
     </div>
 </div>
 <script>
-    // Set the date we're counting down to
     var countDown = new Date().getTime() + {{.remaintime }}; //milisec
     var refCountDown = new Date().getTime() + {{.refreshtime }}; //milisec
 
