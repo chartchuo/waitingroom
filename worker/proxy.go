@@ -4,6 +4,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -22,7 +24,7 @@ func ccDial(network, address string) (net.Conn, error) {
 }
 
 var transport = &http.Transport{
-	Dial:                  ccDial,
+	// Dial:                  ccDial,
 	MaxIdleConns:          100,
 	IdleConnTimeout:       90 * time.Second,
 	TLSHandshakeTimeout:   10 * time.Second,
@@ -30,6 +32,17 @@ var transport = &http.Transport{
 }
 
 func proxyRequest(c *gin.Context) {
+
+	u, err := url.Parse("http://127.0.0.1:3000")
+	if err != nil {
+		log.Debugln(err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(u)
+	proxy.Transport = transport
+	proxy.ServeHTTP(c.Writer, c.Request)
+}
+func proxyRequest2(c *gin.Context) {
+
 	w := c.Writer
 	r := c.Request
 	// r := d.R

@@ -215,6 +215,7 @@ func (client *clientData) saveCookie(c *gin.Context) {
 		Value:    str,
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   maxage,
+		Path:     "/",
 	}
 	http.SetCookie(c.Writer, &cookie)
 }
