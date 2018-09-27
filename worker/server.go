@@ -43,8 +43,8 @@ func serverinit() {
 	//todo mock serverdata
 	serverdataDB["mock"] = ServerData{
 		// Status: serverStatusWaitRoom,
-		Status: serverStatusNotOpen,
-		// Status:      serverStatusNormal,
+		// Status: serverStatusNotOpen,
+		Status:      serverStatusNormal,
 		ReleaseTime: c.ServerConfig["mock"].OpenTime.Add(time.Minute * 2),
 		MaxUsers:    1,
 		// CurrentUsers: 100,

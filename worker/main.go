@@ -59,8 +59,8 @@ func main() {
 	r.Delims("{{", "}}")
 	r.LoadHTMLFiles("tmpl/wait.tmpl", "tmpl/error.tmpl") //gin limitation: must add multiple file in one command
 
-	r.Any("/", proxyHandler)
-	r.GET(waitRoomPath, waitHandler)
+	r.Any("/*root", proxyHandler)
+	// r.GET(waitRoomPath, waitHandler)
 
 	// client := newClientData("test")
 	// if client.isValid() {
