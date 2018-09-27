@@ -1,11 +1,12 @@
+advisor: 'localhost:6000'
 hostdb:
   'mockserver:80': mock
   'mockserver:8080': mock
   'localhost:8080': mock
   '192.168.1.64:8080': mock  
 targetdb:
-  mock: 'mockserver:8888'
+  mock: 'localhost:8888'
 serverconfig:
   mock:
     opentime: 2018-09-22 19:00:00
-    maxusers: 100
+    maxusers: 1

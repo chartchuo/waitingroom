@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
@@ -16,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const qSpanTime = time.Minute //one minute
+const qSpanTime = time.Minute //Spantime when enter the queue will random in open to open+spantime
 const cookieName = "ccwait"
 const uuidNameSpace = "ccwait"
 const key = "D3NRX?uVtbJEq_HHLQ5Y"
@@ -39,8 +40,20 @@ type clientData struct {
 	LastAccess   time.Time
 	ReleaseTime  time.Time
 	RefreshCount int
-	MAC          string //base on ID,QTime and secret for pass to main system only
-	Authen       string //base on ID,ReleaseTime and secret for check every request to main system
+	MAC          string //base on ID,Status,QTime and secret
+}
+
+type clientDataCookie struct {
+	ID           string
+	Status       clientStatus
+	Server       string
+	ArriveTime   int64
+	QTime        int64
+	NextAttemp   int64
+	LastAccess   int64
+	ReleaseTime  int64
+	RefreshCount int
+	MAC          string //base on ID,Status,QTime and secret
 }
 
 func newClientID() string {
@@ -48,7 +61,8 @@ func newClientID() string {
 }
 
 func newClientData(server string) clientData {
-	a := time.Now()
+	now := time.Now().UnixNano()
+	a := time.Unix(0, now)
 	c := confManager.Get().ServerConfig[server]
 	// s := serverdata[server]
 	var q time.Time
@@ -62,7 +76,6 @@ func newClientData(server string) clientData {
 	} else {
 		q = a
 	}
-	log.Debugln(c.OpenTime)
 	client := clientData{
 		ID:           newClientID(),
 		Status:       clientStatusNew,
@@ -77,30 +90,62 @@ func newClientData(server string) clientData {
 	return client
 }
 
-func (c *clientData) isValid() bool {
+func (client *clientData) isValid() bool {
 	mac := hmac.New(sha1.New, []byte(key))
-	mac.Write([]byte(c.ID))
-	b, _ := c.QTime.MarshalBinary()
-	mac.Write(b)
-	return c.MAC == hex.EncodeToString(mac.Sum(nil))
+	mac.Write([]byte(client.ID))                 //client ID
+	mac.Write([]byte(fmt.Sprint(client.Status))) //client status
+	// b, _ := client.QTime.MarshalBinary()         //Qtime
+	// mac.Write(b)                                 //Qtime
+	mac.Write([]byte(fmt.Sprint(client.QTime.UnixNano()))) //Queue time nano
+	return client.MAC == hex.EncodeToString(mac.Sum(nil))
 }
 
-func (c *clientData) genMAC() {
+func (client *clientData) genMAC() {
 	mac := hmac.New(sha1.New, []byte(key))
-	mac.Write([]byte(c.ID))
-	b, _ := c.QTime.MarshalBinary()
-	mac.Write(b)
-	c.MAC = hex.EncodeToString(mac.Sum(nil))
+	mac.Write([]byte(client.ID))                 //client ID
+	mac.Write([]byte(fmt.Sprint(client.Status))) //client status
+	// b, _ := client.QTime.MarshalBinary()         //Qtime
+	// mac.Write(b)                                 //Qtime
+	mac.Write([]byte(fmt.Sprint(client.QTime.UnixNano()))) //Queue time nano
+	client.MAC = hex.EncodeToString(mac.Sum(nil))
 }
-
-func newClientFromC(c *gin.Context) (clientData, error) {
+func (client *clientData) toCookie() clientDataCookie {
+	return clientDataCookie{
+		ID:           client.ID,
+		Status:       client.Status,
+		Server:       client.Server,
+		ArriveTime:   client.ArriveTime.UnixNano(),
+		QTime:        client.QTime.UnixNano(),
+		NextAttemp:   client.NextAttemp.UnixNano(),
+		LastAccess:   client.LastAccess.UnixNano(),
+		ReleaseTime:  client.ReleaseTime.UnixNano(),
+		RefreshCount: client.RefreshCount,
+		MAC:          client.MAC,
+	}
+}
+func (c *clientDataCookie) toClient() clientData {
+	return clientData{
+		ID:           c.ID,
+		Status:       c.Status,
+		Server:       c.Server,
+		ArriveTime:   time.Unix(0, c.ArriveTime),
+		QTime:        time.Unix(0, c.QTime),
+		NextAttemp:   time.Unix(0, c.NextAttemp),
+		LastAccess:   time.Unix(0, c.LastAccess),
+		ReleaseTime:  time.Unix(0, c.ReleaseTime),
+		RefreshCount: c.RefreshCount,
+		MAC:          c.MAC,
+	}
+}
+func ginContext2Client(c *gin.Context) (clientData, error) {
 	r := c.Request
 	host, err := hostGet(r.Host)
 	if err != nil {
 		c.JSON(200, gin.H{
-			"message": "unknow host.",
+			"message": "unknow host." + r.Host,
 		})
-		return clientData{}, errors.New("Error: unknow host")
+		log.Errorln("unknow host:", r.Host)
+		return clientData{}, errors.New("unknow host")
 	}
 
 	newClient := false
@@ -108,34 +153,50 @@ func newClientFromC(c *gin.Context) (clientData, error) {
 
 	reqCookie, err := r.Cookie(cookieName)
 	if err != nil {
+		log.Debugln("get cookie error: ", err)
 		newClient = true
 	} else {
-		client := clientData{}
+		clientCookie := clientDataCookie{}
 		j, err := base64.StdEncoding.DecodeString(reqCookie.Value)
 		if err != nil {
+			log.Debugln("base64 decode error: ", err)
 			newClient = true
 		}
-		err = json.Unmarshal(j, &client)
+		err = json.Unmarshal(j, &clientCookie)
 		if err != nil {
+			log.Debugln("json unmarshall error: ", err)
 			newClient = true
+		}
+
+		client = clientCookie.toClient()
+		if appRunMode == "debug" { //no need to verify every time in production
+			if !client.isValid() {
+				log.Errorln("invalid cookie mac remote ip: ", c.Request.RemoteAddr)
+				log.Errorln(client)
+				log.Errorln(clientCookie)
+				return clientData{}, errors.New("invalid cookie mac")
+			}
 		}
 	}
+
+	client.Server = host
 
 	// verify cookie if no cookie generate new and redirect to waiting room
 	if newClient {
 		client = newClientData(host)
 	}
-	//ensure host consistant with URL
-	if client.Server != host {
-		log.Debugf("Server mismatch client.Server: %v host:%v\n", client.Server, host)
-	}
-	client.Server = host
+
+	// log.Debugln(client)
 	return client, nil
 }
 
-func setClientCookie(c *gin.Context, client clientData) {
+func (client *clientData) saveCookie(c *gin.Context) {
+	//generate new message authen
+	client.genMAC()
 
-	j, err := json.Marshal(client)
+	clientCookie := client.toCookie()
+
+	j, err := json.Marshal(clientCookie)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"message": "Error: Generate client data.",
@@ -144,13 +205,16 @@ func setClientCookie(c *gin.Context, client clientData) {
 		return
 	}
 	str := base64.StdEncoding.EncodeToString([]byte(j))
-	// webdata.ClientID = newClientID()
+
+	maxage := 3600 //one hour
+	if appRunMode == "debug" {
+		maxage = 600
+	}
 	cookie := http.Cookie{
 		Name:     cookieName,
 		Value:    str,
 		SameSite: http.SameSiteStrictMode,
-		// MaxAge:   3600, //one hour
-		MaxAge: 600, //todo for testing only
+		MaxAge:   maxage,
 	}
 	http.SetCookie(c.Writer, &cookie)
 }

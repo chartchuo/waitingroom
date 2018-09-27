@@ -39,18 +39,22 @@ func serverinit() {
 	configMock := c.ServerConfig["mock"]
 	configMock.OpenTime = time.Now().Add(time.Minute)
 	confManager.Set(c)
+
+	//todo mock serverdata
 	serverdataDB["mock"] = ServerData{
-		Status:       serverStatusNotOpen,
-		ReleaseTime:  c.ServerConfig["mock"].OpenTime.Add(time.Minute * 2),
-		MaxUsers:     100,
-		CurrentUsers: 100,
+		// Status: serverStatusWaitRoom,
+		Status: serverStatusNotOpen,
+		// Status:      serverStatusNormal,
+		ReleaseTime: c.ServerConfig["mock"].OpenTime.Add(time.Minute * 2),
+		MaxUsers:    1,
+		// CurrentUsers: 100,
 	}
 }
 
 func getServerData(name string) ServerData {
 	s, ok := serverdataDB[name]
 	if !ok {
-		log.Error("error server.go getServerData ", name)
+		log.Error("error server.go getServerData() ", name)
 	}
 	return s
 }

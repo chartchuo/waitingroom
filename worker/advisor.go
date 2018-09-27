@@ -15,7 +15,7 @@ var inRespTime = make(chan int, 10)
 var avgRespTime int
 
 func advisorPoller() {
-	conn, err := grpc.Dial("advisor:6000", grpc.WithInsecure())
+	conn, err := grpc.Dial(confManager.Get().Advisor, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("ERROR connect to advisor: %v", err)
 	}
@@ -25,7 +25,7 @@ func advisorPoller() {
 	ctx := context.Background()
 
 	var sum, count int
-	tick := time.Tick(time.Second * 5)
+	tick := time.Tick(time.Second * 5) //update with advisor time interval
 	for {
 		select {
 		case r := <-inRespTime:
@@ -36,7 +36,7 @@ func advisorPoller() {
 			//todo non blocking by adding go routine and channel
 
 			stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
-			_, err := client.Update(ctx, stat)
+			advData, err := client.Update(ctx, stat)
 
 			if err != nil {
 				log.Errorf("Can't connect to advise: %v", err)
@@ -46,6 +46,12 @@ func advisorPoller() {
 			sum = 0
 			count = 0
 			avgRespTime = 0
+
+			mockserver := serverdataDB["mock"]
+			mockserver.ReleaseTime = time.Unix(0, advData.ReleaseTime)
+			serverdataDB["mock"] = mockserver
+			// log.Debugln(serverdataDB["mock"].ReleaseTime)
+
 		}
 	}
 }

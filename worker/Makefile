@@ -2,6 +2,7 @@ service=worker
 build: 
 	go build
 	minify --type html -o tmpl/wait.minify.tmpl tmpl/wait.tmpl
+	minify --type html -o tmpl/error.minify.tmpl tmpl/error.tmpl
 	docker build -t localhost:5000/$(service) .
 
 clean:

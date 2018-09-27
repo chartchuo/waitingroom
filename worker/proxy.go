@@ -17,18 +17,25 @@ func ccDial(network, address string) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+	d.Timeout = time.Second * 5
 	return d.Dial(network, newAddress)
 }
 
 var transport = &http.Transport{
-	Dial: ccDial,
+	Dial:                  ccDial,
+	MaxIdleConns:          100,
+	IdleConnTimeout:       90 * time.Second,
+	TLSHandshakeTimeout:   10 * time.Second,
+	ExpectContinueTimeout: 1 * time.Second,
 }
 
-func proxyRequest(w http.ResponseWriter, r *http.Request) {
+func proxyRequest(c *gin.Context) {
+	w := c.Writer
+	r := c.Request
 	// r := d.R
 	url := "http://" + r.Host + r.URL.Path
 
-	log.Debugln(r.RemoteAddr + " " + r.Method + " " + url)
+	// log.Debugln(r.RemoteAddr + " " + r.Method + " " + url)
 	var req *http.Request
 	req, _ = http.NewRequest(r.Method, url, r.Body)
 
@@ -40,6 +47,7 @@ func proxyRequest(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
+		renderErrorPage(c)
 		log.Println(err)
 		return
 	}
@@ -59,38 +67,75 @@ func proxyRequest(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func redirec2WaitingRoom(c *gin.Context) {
+	host, err := hostGet(c.Request.Host)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"message": "unknow host." + c.Request.Host,
+		})
+		log.Errorln("unknow host:", c.Request.Host)
+		return
+	}
+	client := newClientData(host)
+	client.saveCookie(c)
+	c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
+}
+
 func proxyHandler(c *gin.Context) {
 
-	client, err := newClientFromC(c)
-	if err != nil { //just return. error messge already response in function
+	client, err := ginContext2Client(c)
+	if err != nil {
+		c.AbortWithError(500, err)
 		return
 	}
 
 	server := getServerData(client.Server)
+
 	switch server.Status {
+
 	case serverStatusNormal:
-		//todo authen
-		client.Status = clientStatusRelease
-		setClientCookie(c, client)
-		proxyRequest(c.Writer, c.Request)
-		return
-	case serverStatusNotOpen:
-		client.Status = clientStatusWait
-		setClientCookie(c, client)
-		c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
-		return
-	case serverStatusWaitRoom:
-		if client.QTime.Before(server.ReleaseTime) {
-			//todo authen
-			client.Status = clientStatusRelease
-			setClientCookie(c, client)
-			proxyRequest(c.Writer, c.Request)
-			return
-		} else {
-			client.Status = clientStatusWait
-			setClientCookie(c, client)
-			c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
+		if client.Status == clientStatusRelease {
+			proxyRequest(c)
 			return
 		}
+		if !client.isValid() {
+			//expect change mac at client site
+			log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
+			redirec2WaitingRoom(c)
+		}
+		client.Status = clientStatusRelease
+		client.saveCookie(c)
+		proxyRequest(c)
+		return
+
+	case serverStatusNotOpen:
+		redirec2WaitingRoom(c)
+		return
+
+	case serverStatusWaitRoom:
+		if client.Status == clientStatusRelease {
+			if !client.isValid() {
+				//expect change mac at client site
+				log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
+				redirec2WaitingRoom(c)
+			}
+			proxyRequest(c)
+			return
+		}
+		if client.QTime.Before(server.ReleaseTime) {
+			if !client.isValid() {
+				//expect change mac at client site
+				log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
+				redirec2WaitingRoom(c)
+			}
+			client.Status = clientStatusRelease
+			client.saveCookie(c)
+			proxyRequest(c)
+			return
+		}
+		client.Status = clientStatusWait
+		client.saveCookie(c)
+		c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
+		return
 	}
 }

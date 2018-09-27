@@ -9,8 +9,10 @@ service AdvService {
 message RequestStat {
     int32 sum = 1;
     int32 count = 2;
+    string server = 3;
 }
 
 message AdvData {
     int64 releaseTime =1 ;
+    string status=2;
 }

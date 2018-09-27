@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"net"
 
@@ -16,8 +17,10 @@ type server struct {
 }
 
 func (s *server) Update(c context.Context, r *adv.RequestStat) (*adv.AdvData, error) {
-	log.Debugf("Sum: %v, Count: %v\n", r.Sum, r.Count)
-	return &adv.AdvData{}, nil
+	log.Debugf("Server: %v, Sum: %v, Count: %v\n", r.Server, r.Sum, r.Count)
+	a := adv.AdvData{}
+	a.ReleaseTime = time.Now().Add(time.Second * 20).UnixNano() //todo mock
+	return &a, nil
 }
 
 const appRunMode = "debug"

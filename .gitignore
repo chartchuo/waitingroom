@@ -6,4 +6,6 @@ controller/controller
 advisor/advisor
 worker/worker
 *.exe
+*.bin
 tmp/
+worker/results.bin

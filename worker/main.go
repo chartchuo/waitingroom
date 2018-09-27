@@ -16,12 +16,8 @@ const serverEntryPath = "/"
 
 var confManager *MutexConfigManager
 
-func init() {
-	log.SetLevel(log.DebugLevel)
-}
-
 func main() {
-	log.Println("Proxy started.")
+	log.Println("Woker started.")
 
 	conf, err := loadConfig(configFile)
 	if err != nil {
@@ -61,10 +57,17 @@ func main() {
 	r := gin.Default()
 
 	r.Delims("{{", "}}")
-	r.LoadHTMLFiles("tmpl/wait.tmpl") //limitation: must add multiple file in one command
+	r.LoadHTMLFiles("tmpl/wait.tmpl", "tmpl/error.tmpl") //gin limitation: must add multiple file in one command
 
 	r.Any("/", proxyHandler)
 	r.GET(waitRoomPath, waitHandler)
+
+	// client := newClientData("test")
+	// if client.isValid() {
+	// 	log.Debugln("valid")
+	// } else {
+	// 	log.Debugln("invalid")
+	// }
 
 	r.Run(":8080")
 

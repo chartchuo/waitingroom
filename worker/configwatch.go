@@ -11,11 +11,9 @@ import (
 
 //todo refactor to library
 
-/*
- Watches a file on a set interval, and preforms de-duplication of write
- events such that only 1 write event is reported even if multiple writes
- happened during the specified duration.
-*/
+// FileWatcher a file on a set interval, and preforms de-duplication of write
+// events such that only 1 write event is reported even if multiple writes
+// happened during the specified duration.
 type FileWatcher struct {
 	fsNotify *fsnotify.Watcher
 	interval time.Duration
@@ -23,9 +21,7 @@ type FileWatcher struct {
 	callback func()
 }
 
-/*
- Begin watching a file with a specific interval and action
-*/
+// WatchFile  Begin watching a file with a specific interval and action
 func WatchFile(path string, interval time.Duration, action func()) (*FileWatcher, error) {
 	fsWatcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -103,19 +99,15 @@ func (fw *FileWatcher) Close() {
 	fw.fsNotify.Close()
 }
 
-/*
- Simple interface that allows us to switch out both implementations of the Manager
-*/
+// ConfigManager Simple interface that allows us to switch out both implementations of the Manager
 type ConfigManager interface {
 	Set(*Config)
 	Get() *Config
 	Close()
 }
 
-/*
- This struct manages the configuration instance by
- preforming locking around access to the Config struct.
-*/
+// MutexConfigManager This struct manages the configuration instance by
+// preforming locking around access to the Config struct.
 type MutexConfigManager struct {
 	conf  *Config
 	mutex *sync.Mutex
@@ -142,10 +134,8 @@ func (mcm *MutexConfigManager) Close() {
 	//Do Nothing
 }
 
-/*
- This struct manages the configuration instance by feeding a
- pointer through a channel whenever the user calls Get()
-*/
+// ChannelConfigManager This struct manages the configuration instance by feeding a
+//  pointer through a channel whenever the user calls Get()
 type ChannelConfigManager struct {
 	conf *Config
 	get  chan *Config

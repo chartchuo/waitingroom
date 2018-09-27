@@ -8,6 +8,7 @@ import (
 
 //Config main repository
 type Config struct {
+	Advisor      string                  `yaml:"advisor,omitempty"`
 	HostDB       map[string]string       `yaml:"hostdb,omitempty"`
 	TargetDB     map[string]string       `yaml:"targetdb,omitempty"`
 	ServerConfig map[string]ServerConfig `yaml:"serverconfig,omitempty"`
