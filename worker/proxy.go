@@ -23,17 +23,32 @@ func ccDial(network, address string) (net.Conn, error) {
 	return d.Dial(network, newAddress)
 }
 
+// var transport = &http.Transport{
+// Dial:                  ccDial,
+// 	MaxIdleConns:          100,
+// 	IdleConnTimeout:       90 * time.Second,
+// 	TLSHandshakeTimeout:   10 * time.Second,
+// 	ExpectContinueTimeout: 1 * time.Second,
+// 	MaxIdleConnsPerHost: 100,
+// }
+
 var transport = &http.Transport{
-	// Dial:                  ccDial,
+	DialContext: (&net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+		DualStack: true,
+	}).DialContext,
 	MaxIdleConns:          100,
 	IdleConnTimeout:       90 * time.Second,
 	TLSHandshakeTimeout:   10 * time.Second,
 	ExpectContinueTimeout: 1 * time.Second,
+	MaxIdleConnsPerHost:   50,
+	MaxConnsPerHost:       200,
 }
 
 func proxyRequest(c *gin.Context) {
 
-	u, err := url.Parse("http://127.0.0.1:3000")
+	u, err := url.Parse("http://127.0.0.1:9090")
 	if err != nil {
 		log.Debugln(err)
 	}
