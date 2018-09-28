@@ -96,7 +96,7 @@ func waitHandler(c *gin.Context) {
 			if !client.isValid() {
 				//expect change mac at client site
 				log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
-				host, err := hostGet(c.Request.Host)
+				host, err := getHost(c.Request.Host)
 				if err != nil {
 					c.JSON(200, gin.H{
 						"message": "unknow host." + c.Request.Host,

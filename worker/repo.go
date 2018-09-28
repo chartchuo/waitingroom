@@ -34,7 +34,7 @@ type WebInspectData struct {
 	BodyBuf []byte
 }
 
-func hostGet(domainname string) (string, error) {
+func getHost(domainname string) (string, error) {
 	if !strings.Contains(domainname, ":") {
 		domainname = domainname + ":80"
 	}
@@ -46,7 +46,7 @@ func hostGet(domainname string) (string, error) {
 	return s, nil
 }
 
-func targetAddress(d string) (string, error) {
+func getTargetAddress(d string) (string, error) {
 	c := confManager.Get()
 	h, ok := c.HostDB[d]
 	if !ok {

@@ -139,7 +139,7 @@ func (c *clientDataCookie) toClient() clientData {
 }
 func ginContext2Client(c *gin.Context) (clientData, error) {
 	r := c.Request
-	host, err := hostGet(r.Host)
+	host, err := getHost(r.Host)
 	if err != nil {
 		c.JSON(200, gin.H{
 			"message": "unknow host." + r.Host,

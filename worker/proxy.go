@@ -15,22 +15,13 @@ import (
 
 func ccDial(network, address string) (net.Conn, error) {
 	var d net.Dialer
-	newAddress, err := targetAddress(address)
+	newAddress, err := getTargetAddress(address)
 	if err != nil {
 		return nil, err
 	}
 	d.Timeout = time.Second * 5
 	return d.Dial(network, newAddress)
 }
-
-// var transport = &http.Transport{
-// Dial:                  ccDial,
-// 	MaxIdleConns:          100,
-// 	IdleConnTimeout:       90 * time.Second,
-// 	TLSHandshakeTimeout:   10 * time.Second,
-// 	ExpectContinueTimeout: 1 * time.Second,
-// 	MaxIdleConnsPerHost: 100,
-// }
 
 var transport = &http.Transport{
 	DialContext: (&net.Dialer{
@@ -47,8 +38,12 @@ var transport = &http.Transport{
 }
 
 func proxyRequest(c *gin.Context) {
+	targetAddress, err := getTargetAddress(c.Request.Host)
+	if err != nil {
+		return
+	}
 
-	u, err := url.Parse("http://127.0.0.1:9090")
+	u, err := url.Parse(targetAddress)
 	if err != nil {
 		log.Debugln(err)
 	}
@@ -56,6 +51,7 @@ func proxyRequest(c *gin.Context) {
 	proxy.Transport = transport
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
+
 func proxyRequest2(c *gin.Context) {
 
 	w := c.Writer
@@ -96,7 +92,7 @@ func proxyRequest2(c *gin.Context) {
 }
 
 func redirec2WaitingRoom(c *gin.Context) {
-	host, err := hostGet(c.Request.Host)
+	host, err := getHost(c.Request.Host)
 	if err != nil {
 		c.JSON(200, gin.H{
 			"message": "unknow host." + c.Request.Host,
