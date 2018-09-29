@@ -54,13 +54,6 @@ func localAdvisor() {
 			con.Increment("sum", int64(c.responseTime))
 		case <-tick:
 			for host, con := range cons {
-				// con, ok := cons["mock"]
-				// if !ok {
-				// 	cons["mock"] = cache.New(time.Minute, time.Second*advInterval)
-				// 	con, _ = cons["mock"]
-				// 	con.Set("count", float64(0), cache.NoExpiration)
-				// 	con.Set("sum", float64(0), cache.NoExpiration)
-				// }
 				count, ok := con.Get("count")
 				if !ok {
 					continue
@@ -78,7 +71,7 @@ func localAdvisor() {
 				}
 				requestRateMetric.WithLabelValues(host).Set(float64(count.(float64)) / float64(advInterval))
 				avgResponseTimeMetric.WithLabelValues(host).Set(sum.(float64) / count.(float64))
-				concurrentUserMetric.WithLabelValues(host).Set(float64(con.ItemCount()))
+				concurrentUserMetric.WithLabelValues(host).Set(float64(con.ItemCount() - 2)) //exclude count and sum metric
 
 				//reset counter to zero
 				con.Set("count", float64(0), cache.NoExpiration)
