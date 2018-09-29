@@ -3,6 +3,8 @@ package main
 import (
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
@@ -17,6 +19,7 @@ const serverEntryPath = "/"
 var confManager *MutexConfigManager
 
 func main() {
+
 	log.Println("Woker started.")
 
 	conf, err := loadConfig(configFile)
@@ -45,7 +48,7 @@ func main() {
 		confManager.Close()
 	}()
 
-	go advisorPoller()
+	startAdvisor()
 
 	if appRunMode == "debug" {
 		serverinit() //mock data
@@ -59,15 +62,22 @@ func main() {
 	r.Delims("{{", "}}")
 	r.LoadHTMLFiles("tmpl/wait.tmpl", "tmpl/error.tmpl") //gin limitation: must add multiple file in one command
 
-	r.Any("/*root", proxyHandler)
 	// r.GET(waitRoomPath, waitHandler)
+	// r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	// r.Any("/", proxyHandler)
 
-	// client := newClientData("test")
-	// if client.isValid() {
-	// 	log.Debugln("valid")
-	// } else {
-	// 	log.Debugln("invalid")
-	// }
+	r.Any("/*path", func(c *gin.Context) {
+		path := c.Param("path")
+		if path == waitRoomPath {
+			waitHandler(c)
+			return
+		} else if path == "/metrics" {
+			h := gin.WrapH(promhttp.Handler())
+			h(c)
+			return
+		}
+		proxyHandler(c)
+	})
 
 	r.Run(":8080")
 

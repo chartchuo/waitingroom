@@ -41,20 +41,16 @@ func getHost(domainname string) (string, error) {
 	c := confManager.Get()
 	s, ok := c.HostDB[domainname]
 	if !ok {
-		return "", errors.New("Invalid domain")
+		return "", errors.New("Domain not found: " + domainname)
 	}
 	return s, nil
 }
 
-func getTargetAddress(d string) (string, error) {
+func host2TargetAddress(host string) (string, error) {
 	c := confManager.Get()
-	h, ok := c.HostDB[d]
+	t, ok := c.TargetDB[host]
 	if !ok {
-		return "", errors.New("Invalid host")
-	}
-	t, ok := c.TargetDB[h]
-	if !ok {
-		return "", errors.New("Invalid domain")
+		return "", errors.New("Target not found host: " + host)
 	}
 	return t, nil
 }
