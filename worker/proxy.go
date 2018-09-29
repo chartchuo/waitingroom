@@ -26,14 +26,9 @@ var transport = &http.Transport{
 	MaxConnsPerHost:       200,
 }
 
-func proxyRequest(c *gin.Context) {
+func proxyRequest(c *gin.Context, client clientData, server ServerData) {
 
-	host, err := getHost(c.Request.Host)
-	if err != nil {
-		log.Errorln(err)
-		return
-	}
-	targetAddress, err := host2TargetAddress(host)
+	targetAddress, err := host2TargetAddress(client.Server)
 	if err != nil {
 		log.Errorln(err)
 		return
@@ -49,7 +44,11 @@ func proxyRequest(c *gin.Context) {
 	start := time.Now()
 	proxy.ServeHTTP(c.Writer, c.Request)
 	duration := time.Since(start)
-	inRespTime <- int(duration / time.Microsecond)
+
+	var clientC clientChan
+	clientC.clientData = client
+	clientC.responseTime = int(duration / time.Microsecond)
+	inRespTime <- clientC
 
 }
 
@@ -75,13 +74,17 @@ func proxyHandler(c *gin.Context) {
 		return
 	}
 
-	server := getServerData(client.Server)
+	server, err := getServerData(client.Server)
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
 
 	switch server.Status {
 
 	case serverStatusNormal:
 		if client.Status == clientStatusRelease {
-			proxyRequest(c)
+			proxyRequest(c, client, server)
 			return
 		}
 		if !client.isValid() {
@@ -91,7 +94,7 @@ func proxyHandler(c *gin.Context) {
 		}
 		client.Status = clientStatusRelease
 		client.saveCookie(c)
-		proxyRequest(c)
+		proxyRequest(c, client, server)
 		return
 
 	case serverStatusNotOpen:
@@ -105,7 +108,7 @@ func proxyHandler(c *gin.Context) {
 				log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
 				redirec2WaitingRoom(c)
 			}
-			proxyRequest(c)
+			proxyRequest(c, client, server)
 			return
 		}
 		if client.QTime.Before(server.ReleaseTime) {
@@ -116,7 +119,7 @@ func proxyHandler(c *gin.Context) {
 			}
 			client.Status = clientStatusRelease
 			client.saveCookie(c)
-			proxyRequest(c)
+			proxyRequest(c, client, server)
 			return
 		}
 		client.Status = clientStatusWait

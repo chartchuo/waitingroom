@@ -72,7 +72,11 @@ func waitHandler(c *gin.Context) {
 		return
 	}
 
-	server := getServerData(client.Server)
+	server, err := getServerData(client.Server)
+	if err != nil {
+		c.AbortWithError(500, err)
+		return
+	}
 
 	switch server.Status {
 

@@ -19,7 +19,6 @@ import (
 
 const qSpanTime = time.Minute //Spantime when enter the queue will random in open to open+spantime
 const cookieName = "ccwait"
-const uuidNameSpace = "ccwait"
 const key = "D3NRX?uVtbJEq_HHLQ5Y"
 
 type clientStatus int
@@ -57,7 +56,11 @@ type clientDataCookie struct {
 }
 
 func newClientID() string {
-	return uuid.NewV5(uuid.NamespaceURL, uuidNameSpace).String()
+	u, err := uuid.NewV4()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return u.String()
 }
 
 func newClientData(server string) clientData {

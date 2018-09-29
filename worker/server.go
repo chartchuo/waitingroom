@@ -1,9 +1,8 @@
 package main
 
 import (
+	"errors"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 //todo add server statistic
@@ -51,10 +50,11 @@ func serverinit() {
 	}
 }
 
-func getServerData(name string) ServerData {
+func getServerData(name string) (ServerData, error) {
 	s, ok := serverdataDB[name]
 	if !ok {
-		log.Error("error server.go getServerData() ", name)
+		// log.Error("error server.go getServerData() ", name)
+		return ServerData{}, errors.New("error server.go getServerData() " + name)
 	}
-	return s
+	return s, nil
 }
