@@ -27,7 +27,6 @@ var transport = &http.Transport{
 }
 
 func proxyRequest(c *gin.Context, client clientData, server ServerData) {
-
 	targetAddress, err := host2TargetAddress(client.Server)
 	if err != nil {
 		log.Errorln(err)
@@ -52,7 +51,7 @@ func proxyRequest(c *gin.Context, client clientData, server ServerData) {
 
 }
 
-func redirec2WaitingRoom(c *gin.Context) {
+func redirec2EnterWaitingRoom(c *gin.Context) {
 	host, err := getHost(c.Request.Host)
 	if err != nil {
 		c.JSON(200, gin.H{
@@ -84,13 +83,14 @@ func proxyHandler(c *gin.Context) {
 
 	case serverStatusNormal:
 		if client.Status == clientStatusRelease {
+			client.saveCookie(c)
 			proxyRequest(c, client, server)
 			return
 		}
 		if !client.isValid() {
 			//expect change mac at client site
 			log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
-			redirec2WaitingRoom(c)
+			redirec2EnterWaitingRoom(c)
 		}
 		client.Status = clientStatusRelease
 		client.saveCookie(c)
@@ -98,7 +98,9 @@ func proxyHandler(c *gin.Context) {
 		return
 
 	case serverStatusNotOpen:
-		redirec2WaitingRoom(c)
+		client.Status = clientStatusWait
+		client.saveCookie(c)
+		c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
 		return
 
 	case serverStatusWaitRoom:
@@ -106,8 +108,9 @@ func proxyHandler(c *gin.Context) {
 			if !client.isValid() {
 				//expect change mac at client site
 				log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
-				redirec2WaitingRoom(c)
+				redirec2EnterWaitingRoom(c)
 			}
+			client.saveCookie(c)
 			proxyRequest(c, client, server)
 			return
 		}
@@ -115,7 +118,7 @@ func proxyHandler(c *gin.Context) {
 			if !client.isValid() {
 				//expect change mac at client site
 				log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
-				redirec2WaitingRoom(c)
+				redirec2EnterWaitingRoom(c)
 			}
 			client.Status = clientStatusRelease
 			client.saveCookie(c)

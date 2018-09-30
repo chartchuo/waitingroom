@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -13,8 +13,8 @@ const (
 	maxRefreshDuration = time.Minute * 5
 )
 
-func renderWaitPage(c *gin.Context) {
-	//todo mock random wait time
+func renderWaitPage(c *gin.Context, client clientData) {
+	//todo predict wait time
 	t := time.Second * 40
 	r := t / 2
 	if r < minRefreshDuration {
@@ -28,7 +28,7 @@ func renderWaitPage(c *gin.Context) {
 	remaintime := int(t / time.Millisecond)
 	refreshtime := int(r / time.Millisecond)
 	msg := ""
-	warn := ""
+	warn := fmt.Sprint(client)
 
 	c.HTML(http.StatusOK, "wait.tmpl", map[string]interface{}{
 		"warningText": warn,
@@ -39,7 +39,7 @@ func renderWaitPage(c *gin.Context) {
 	})
 }
 
-func renderErrorPage(c *gin.Context) {
+func renderErrorPage(c *gin.Context, client clientData) {
 	t := time.Second * 40
 	r := t / 2
 	if r < minRefreshDuration {
@@ -88,7 +88,7 @@ func waitHandler(c *gin.Context) {
 
 	case serverStatusNotOpen:
 		client.saveCookie(c)
-		renderWaitPage(c)
+		renderWaitPage(c, client)
 		return
 
 	case serverStatusWaitRoom:
@@ -99,16 +99,7 @@ func waitHandler(c *gin.Context) {
 		if client.QTime.Before(server.ReleaseTime) {
 			if !client.isValid() {
 				//expect change mac at client site
-				log.Infoln("invalid MAC detect remote ip: ", c.Request.RemoteAddr)
-				host, err := getHost(c.Request.Host)
-				if err != nil {
-					c.JSON(200, gin.H{
-						"message": "unknow host." + c.Request.Host,
-					})
-					log.Errorln("unknow host:", c.Request.Host)
-					return
-				}
-				client = newClientData(host)
+				client = ginContext2NewClient(c)
 				client.saveCookie(c)
 				c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
 			}
@@ -119,7 +110,7 @@ func waitHandler(c *gin.Context) {
 		}
 		client.Status = clientStatusWait
 		client.saveCookie(c)
-		renderWaitPage(c)
+		renderWaitPage(c, client)
 		return
 	}
 

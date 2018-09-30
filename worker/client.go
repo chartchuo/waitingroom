@@ -140,6 +140,13 @@ func (c *clientDataCookie) toClient() clientData {
 		MAC:          c.MAC,
 	}
 }
+
+func ginContext2NewClient(c *gin.Context) clientData {
+	host, _ := getHost(c.Request.Host)
+	client := newClientData(host)
+	return client
+}
+
 func ginContext2Client(c *gin.Context) (clientData, error) {
 	r := c.Request
 	host, err := getHost(r.Host)
