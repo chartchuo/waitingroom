@@ -23,6 +23,15 @@ var (
 		},
 		[]string{"host"})
 
+	p95ResponseTimeMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "ccwait",
+			Subsystem: "worker",
+			Name:      "p95_response_time",
+			Help:      "95 percentile response time request to target host. (microsecond)",
+		},
+		[]string{"host"})
+
 	requestRateMetric = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "ccwait",
@@ -31,23 +40,12 @@ var (
 			Help:      "Number of request to target host per second",
 		},
 		[]string{"host"})
-
-	// responseTimeHistogram = prometheus.NewHistogramVec(
-	// 	prometheus.HistogramOpts{
-	// 		Namespace: "ccwait",
-	// 		Subsystem: "worker",
-	// 		Name:      "response_time_histogram",
-	// 		Help:      "Response time from target host distribution.",
-	// 		Buckets:   []float64{100, 200, 500, 1000, 2000, 5000, 10000},
-	// 	},
-	// 	[]string{"host"},
-	// )
 )
 
 func init() {
 	prometheus.MustRegister(concurrentUserMetric)
 	prometheus.MustRegister(avgResponseTimeMetric)
+	prometheus.MustRegister(p95ResponseTimeMetric)
 	prometheus.MustRegister(requestRateMetric)
-	// prometheus.MustRegister(responseTimeHistogram)
 
 }

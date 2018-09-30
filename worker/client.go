@@ -156,7 +156,7 @@ func ginContext2Client(c *gin.Context) (clientData, error) {
 
 	reqCookie, err := r.Cookie(cookieName)
 	if err != nil {
-		log.Debugln("get cookie error: ", err)
+		// log.Debugln("get cookie error: ", err)
 		newClient = true
 	} else {
 		clientCookie := clientDataCookie{}
