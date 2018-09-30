@@ -172,7 +172,7 @@ func ginContext2Client(c *gin.Context) (clientData, error) {
 		}
 
 		client = clientCookie.toClient()
-		if appRunMode == "debug" { //no need to verify every time in production
+		if appRunMode == "debug" { //no need to verify every request in production
 			if !client.isValid() {
 				log.Errorln("invalid cookie mac remote ip: ", c.Request.RemoteAddr)
 				log.Errorln(client)
@@ -209,7 +209,7 @@ func (client *clientData) saveCookie(c *gin.Context) {
 	}
 	str := base64.StdEncoding.EncodeToString([]byte(j))
 
-	maxage := 3600 //one hour
+	maxage := 3600 //3600 one hour
 	if appRunMode == "debug" {
 		maxage = 600
 	}

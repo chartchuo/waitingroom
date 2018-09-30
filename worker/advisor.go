@@ -11,6 +11,13 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	advisorStatusLocal serverStatus = iota
+	advisorStatusGlobal
+)
+
+var advisorState = advisorStatusLocal
+
 type clientChan struct {
 	clientData
 	responseTime int
@@ -23,8 +30,12 @@ type serverCounter struct {
 	p95            []int
 }
 
+func (c *serverCounter) getConcurrentUser() int {
+	return c.concurrentUser.ItemCount()
+}
+
 // Reponse time unit in milisec
-var inRespTime = make(chan clientChan, 10)
+var inRespTime = make(chan clientChan, 100)
 var avgRespTime int
 
 func startAdvisor() {
@@ -33,16 +44,7 @@ func startAdvisor() {
 
 const advInterval = 5 //second
 
-func calP95(p95 []int, count int, rt int) []int {
-	n := len(p95)
-	if n == 0 {
-		p95 = append(p95, rt)
-		return p95
-	}
-
-	return p95
-}
-
+// single go routine no need to aware race condition
 func localAdvisor() {
 	conn, err := grpc.Dial(confManager.Get().Advisor, grpc.WithInsecure())
 	if err != nil {
@@ -65,13 +67,14 @@ func localAdvisor() {
 					count:          0,
 					sum:            0,
 					concurrentUser: cache.New(time.Minute, time.Second*advInterval),
-					p95:            make([]int, 0, 1000),
+					p95:            make([]int, 0, p95cap),
 				}
 			}
 			serverStat[c.Server].concurrentUser.Set(c.ID, 1, cache.DefaultExpiration) //add client id cache
 
 			//calculate 95 percentile
 			p95 := calP95(serverStat[c.Server].p95, serverStat[c.Server].count, c.responseTime)
+			// p95 := calP95(serverStat[c.Server].p95, serverStat[c.Server].count, serverStat[c.Server].count%100) //test p95 by distribyte 0-99
 
 			serverStat[c.Server] = serverCounter{
 				count:          serverStat[c.Server].count + 1,
@@ -88,12 +91,46 @@ func localAdvisor() {
 				advData, err := client.Update(ctx, stat)
 				if err != nil {
 					log.Errorf("Can't connect to advise: %v %v", err, advData)
-					// continue
+					advisorState = advisorStatusLocal
+					break
 				}
 				requestRateMetric.WithLabelValues(host).Set(float64(count) / float64(advInterval))
 				avgResponseTimeMetric.WithLabelValues(host).Set(float64(sum) / float64(count))
-				concurrentUserMetric.WithLabelValues(host).Set(float64(counter.concurrentUser.ItemCount()))
+				concurrentUserMetric.WithLabelValues(host).Set(float64(counter.getConcurrentUser()))
+				maxResponseTimeMetric.WithLabelValues(host).Set(float64(getP95Max(counter.p95)))
+				p95ResponseTimeMetric.WithLabelValues(host).Set(float64(getP95(counter.p95)))
+			}
 
+			switch advisorState {
+			case advisorStatusLocal:
+				for host, counter := range serverStat { //local calculation
+					s, err := getServerData(host)
+					if err != nil {
+						log.Error("Local advisor can't fund server/host" + host)
+					}
+
+					switch s.Status {
+					case serverStatusNormal:
+					case serverStatusNotOpen:
+					case serverStatusWaitRoom:
+						cu := counter.getConcurrentUser()
+						if cu < s.MaxUsers/2 {
+							s.ReleaseTime = s.ReleaseTime.Add(advInterval * time.Second * 2)
+						} else if cu < s.MaxUsers {
+							s.ReleaseTime = s.ReleaseTime.Add(advInterval * time.Second)
+						}
+						if s.ReleaseTime.After(time.Now()) {
+							s.ReleaseTime = time.Now()
+						}
+						setServerData(host, s)
+						log.Debugf("ADV: release time for host %v: %v\n dif from now:%v", host, s.ReleaseTime, time.Now().Sub(s.ReleaseTime))
+					}
+
+				}
+
+			}
+
+			for host, counter := range serverStat { //clear data for all server
 				serverStat[host] = serverCounter{
 					count:          0,
 					sum:            0,

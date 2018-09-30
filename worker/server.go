@@ -2,12 +2,9 @@ package main
 
 import (
 	"errors"
+	"sync"
 	"time"
 )
-
-//todo add server statistic
-// - 95p response time
-// concurrent users
 
 //ServerConfig for save and load from file
 type ServerConfig struct {
@@ -31,30 +28,68 @@ type ServerData struct {
 }
 
 var serverdataDB map[string]ServerData
+var serverdataMutex = &sync.Mutex{}
 
-func serverinit() {
+func init() {
 	serverdataDB = make(map[string]ServerData)
-	c := confManager.Get()
-	configMock := c.ServerConfig["mock"]
-	configMock.OpenTime = time.Now().Add(time.Minute)
-	confManager.Set(c)
+}
 
-	//todo mock serverdata
-	serverdataDB["mock"] = ServerData{
-		// Status: serverStatusWaitRoom,
+// func serverinit2() {
+// 	serverdataDB = make(map[string]ServerData)
+// 	c := confManager.Get()
+// 	configMock := c.ServerConfig["mock"]
+// 	configMock.OpenTime = time.Now().Add(time.Minute)
+// 	confManager.Set(c)
+
+// 	serverdataDB["mock"] = ServerData{
+// 		// Status: serverStatusWaitRoom,
+// 		// Status: serverStatusNotOpen,
+// 		Status:      serverStatusNormal,
+// 		ReleaseTime: c.ServerConfig["mock"].OpenTime.Add(time.Minute * 2),
+// 		MaxUsers:    1,
+// 		// CurrentUsers: 100,
+// 	}
+// }
+
+func newServerData(name string) (ServerData, error) {
+	s, ok := serverdataDB[name] //check lock check
+	if ok {
+		return s, nil
+	}
+	serverdataMutex.Lock()
+	defer serverdataMutex.Unlock()
+	s2, ok := serverdataDB[name]
+	if ok {
+		return s2, nil
+	}
+	// c := confManager.Get()
+
+	// log.Debug("name: " + name)
+	serverdataDB[name] = ServerData{ //todo read from config
+		Status: serverStatusWaitRoom,
 		// Status: serverStatusNotOpen,
-		Status:      serverStatusNormal,
-		ReleaseTime: c.ServerConfig["mock"].OpenTime.Add(time.Minute * 2),
-		MaxUsers:    1,
+		// Status:      serverStatusNormal,
+		ReleaseTime: time.Now().Truncate(time.Minute * 2),
+		MaxUsers:    10,
 		// CurrentUsers: 100,
 	}
+	s3, ok := serverdataDB[name]
+	if ok {
+		return s3, nil
+	}
+	return ServerData{}, errors.New("error server.go newServerData() " + name)
 }
 
 func getServerData(name string) (ServerData, error) {
 	s, ok := serverdataDB[name]
 	if !ok {
-		// log.Error("error server.go getServerData() ", name)
-		return ServerData{}, errors.New("error server.go getServerData() " + name)
+		return newServerData(name)
 	}
 	return s, nil
+}
+
+func setServerData(name string, s ServerData) {
+	serverdataMutex.Lock()
+	defer serverdataMutex.Unlock()
+	serverdataDB[name] = s
 }

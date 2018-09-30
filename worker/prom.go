@@ -23,6 +23,15 @@ var (
 		},
 		[]string{"host"})
 
+	maxResponseTimeMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "ccwait",
+			Subsystem: "worker",
+			Name:      "max_response_time",
+			Help:      "Max response time request to target host. (microsecond)",
+		},
+		[]string{"host"})
+
 	p95ResponseTimeMetric = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "ccwait",
@@ -45,6 +54,7 @@ var (
 func init() {
 	prometheus.MustRegister(concurrentUserMetric)
 	prometheus.MustRegister(avgResponseTimeMetric)
+	prometheus.MustRegister(maxResponseTimeMetric)
 	prometheus.MustRegister(p95ResponseTimeMetric)
 	prometheus.MustRegister(requestRateMetric)
 

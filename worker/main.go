@@ -51,7 +51,7 @@ func main() {
 	startAdvisor()
 
 	if appRunMode == "debug" {
-		serverinit() //mock data
+		// serverinit() //mock data
 		log.SetLevel(log.DebugLevel)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
