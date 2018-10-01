@@ -28,7 +28,7 @@ func renderWaitPage(c *gin.Context, client clientData) {
 	remaintime := int(t / time.Millisecond)
 	refreshtime := int(r / time.Millisecond)
 	msg := ""
-	warn := fmt.Sprint(client)
+	warn := fmt.Sprintf("%+v", client)
 
 	c.HTML(http.StatusOK, "wait.tmpl", map[string]interface{}{
 		"warningText": warn,
