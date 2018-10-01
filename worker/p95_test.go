@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestP95(t *testing.T) {
-	data := make([]int, 0, 1000)
+	data := make([]int, 0, p95cap)
 	var v int
 
 	t.Log("Test round 1 100 element 1-100")
@@ -48,4 +48,39 @@ func TestP95(t *testing.T) {
 		t.Errorf("P95 max was incorrect, got: %d, want: %d.", v, 95)
 	}
 
+}
+
+func TestP95limit(t *testing.T) {
+	data := make([]int, 0, p95cap)
+	var v int
+
+	t.Log("Test round 1 100 element 1-1000")
+	for i := 1; i <= p95cap; i++ {
+		data = calP95(data, i, i)
+	}
+	v = getP95Max(data)
+	if v != p95cap {
+		t.Errorf("P95 max was incorrect, got: %d, want: %d.", v, p95cap)
+	}
+	v = getP95(data)
+	if v != p95cap*95/100 {
+		t.Errorf("P95 max was incorrect, got: %d, want: %d.", v, p95cap*95/100)
+	}
+}
+func TestP95overflow(t *testing.T) {
+	data := make([]int, 0, p95cap)
+	var v int
+
+	t.Log("Test round 1 100 element 1-1000")
+	for i := 1; i <= p95cap+1; i++ {
+		data = calP95(data, i, i)
+	}
+	v = getP95Max(data)
+	if v != p95cap+1 {
+		t.Errorf("P95 max was incorrect, got: %d, want: %d.", v, p95cap+1)
+	}
+	v = getP95(data)
+	if v != p95cap*95/100+1 {
+		t.Errorf("P95 max was incorrect, got: %d, want: %d.", v, p95cap*95/100+1)
+	}
 }

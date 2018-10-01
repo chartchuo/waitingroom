@@ -38,3 +38,41 @@ func TestClientCookie(t *testing.T) {
 		t.Errorf("convert clinet to cookie and convert back not equal client: %+v new  %+v", client, newClient)
 	}
 }
+
+func TestClientSpan(t *testing.T) {
+	n := time.Now()
+	for i := 0; i < 1000; i++ {
+		v := spanTime(n)
+		if !(v.After(n) && v.Before(n.Add(qSpanTime))) {
+			t.Errorf("1 spantime not in spect range v: %v t: %v", v, n)
+		}
+	}
+
+	n = time.Now().Add(time.Minute)
+	for i := 0; i < 1000; i++ {
+		v := spanTime(n)
+		if !(v.After(n) && v.Before(n.Add(qSpanTime))) {
+			t.Errorf("2 spantime not in spect range v: %v t: %v", v, n)
+		}
+	}
+
+	n = time.Now().Add(qSpanTime / -2)
+	for i := 0; i < 1000; i++ {
+		v := spanTime(n)
+		if !(v.After(n.Add(qSpanTime/2)) && v.Before(n.Add(qSpanTime))) {
+			t.Errorf("3 spantime not in spect range v: %v t: %v", v, n)
+		}
+	}
+
+	n = time.Now().Add(-qSpanTime)
+	v := spanTime(n)
+	if !v.Truncate(time.Millisecond).Equal(n.Add(qSpanTime).Truncate(time.Millisecond)) {
+		t.Errorf("4 spantime not in spect range v: %v t: %v", v.Truncate(time.Millisecond), n.Truncate(time.Millisecond))
+	}
+
+	n = time.Now().Add(-qSpanTime * 2)
+	v = spanTime(n)
+	if !v.Truncate(time.Millisecond).Equal(n.Add(qSpanTime * 2).Truncate(time.Millisecond)) {
+		t.Errorf("4 spantime not in spect range v: %v t: %v", v.Truncate(time.Millisecond), n.Truncate(time.Millisecond))
+	}
+}
