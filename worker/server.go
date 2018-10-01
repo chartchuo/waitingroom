@@ -23,6 +23,7 @@ const (
 type ServerData struct {
 	Status       serverStatus
 	ReleaseTime  time.Time
+	OpenTime     time.Time
 	MaxUsers     int
 	CurrentUsers int //todo on local proxy instant only not implement cluster solution yet
 }
@@ -65,12 +66,13 @@ func newServerData(name string) (ServerData, error) {
 	// c := confManager.Get()
 
 	// log.Debug("name: " + name)
-	serverdataDB[name] = ServerData{ //todo read from config
+	serverdataDB[name] = ServerData{
 		Status: serverStatusWaitRoom,
 		// Status: serverStatusNotOpen,
 		// Status:      serverStatusNormal,
-		ReleaseTime: time.Now().Truncate(time.Minute * 2),
-		MaxUsers:    10,
+		ReleaseTime: time.Now().Add(time.Minute * 2),
+		OpenTime:    time.Now().Add(time.Minute * 2), //todo read from config
+		MaxUsers:    10,                              //todo read from config
 		// CurrentUsers: 100,
 	}
 	s3, ok := serverdataDB[name]

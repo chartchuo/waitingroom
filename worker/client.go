@@ -63,30 +63,37 @@ func newClientID() string {
 	return u.String()
 }
 
-func newClientData(server string) clientData {
+func spanTime(opentime time.Time) time.Time {
 	now := time.Now().UnixNano()
 	a := time.Unix(0, now)
-	c := confManager.Get().ServerConfig[server]
-	// s := serverdata[server]
 	var q time.Time
-	if a.Before(c.OpenTime) {
+	if a.Before(opentime) {
 		r := rand.Int63n(int64(qSpanTime))
-		q = c.OpenTime.Add(time.Duration(r)) //span from open to end of span
-	} else if a.Before(c.OpenTime.Add(qSpanTime)) {
-		d := c.OpenTime.Add(qSpanTime).Sub(a) //time remain bedore end of span
+		q = opentime.Add(time.Duration(r)) //span from open to end of span
+	} else if a.Before(opentime.Add(qSpanTime)) {
+		d := opentime.Add(qSpanTime).Sub(a) //time remain bedore end of span
 		r := rand.Int63n(int64(d))
 		q = a.Add(time.Duration(r)) //span from arrive to end of span
 	} else {
 		q = a
 	}
+	return q
+}
+
+func newClientData(server string) clientData {
+	now := time.Now().UnixNano()
+	a := time.Unix(0, now) //workaround remove + after time from time.Now()
+	// c := confManager.Get().ServerConfig[server]
+	// q := spanTime(c.OpenTime)
 	client := clientData{
 		ID:           newClientID(),
 		Status:       clientStatusNew,
 		Server:       server,
 		ArriveTime:   a,
-		QTime:        q,
-		NextAttemp:   q,
+		QTime:        a,
 		LastAccess:   a,
+		NextAttemp:   time.Unix(0, 0),
+		ReleaseTime:  time.Unix(0, 0),
 		RefreshCount: 0,
 	}
 	client.genMAC()
@@ -95,20 +102,20 @@ func newClientData(server string) clientData {
 
 func (client *clientData) isValid() bool {
 	mac := hmac.New(sha1.New, []byte(key))
-	mac.Write([]byte(client.ID))                 //client ID
-	mac.Write([]byte(fmt.Sprint(client.Status))) //client status
-	// b, _ := client.QTime.MarshalBinary()         //Qtime
-	// mac.Write(b)                                 //Qtime
+	mac.Write([]byte(client.ID))                           //client ID
+	mac.Write([]byte(fmt.Sprint(client.Status)))           //client status
+	b, _ := client.QTime.MarshalBinary()                   //Qtime
+	mac.Write(b)                                           //Qtime
 	mac.Write([]byte(fmt.Sprint(client.QTime.UnixNano()))) //Queue time nano
 	return client.MAC == hex.EncodeToString(mac.Sum(nil))
 }
 
 func (client *clientData) genMAC() {
 	mac := hmac.New(sha1.New, []byte(key))
-	mac.Write([]byte(client.ID))                 //client ID
-	mac.Write([]byte(fmt.Sprint(client.Status))) //client status
-	// b, _ := client.QTime.MarshalBinary()         //Qtime
-	// mac.Write(b)                                 //Qtime
+	mac.Write([]byte(client.ID))                           //client ID
+	mac.Write([]byte(fmt.Sprint(client.Status)))           //client status
+	b, _ := client.QTime.MarshalBinary()                   //Qtime
+	mac.Write(b)                                           //Qtime
 	mac.Write([]byte(fmt.Sprint(client.QTime.UnixNano()))) //Queue time nano
 	client.MAC = hex.EncodeToString(mac.Sum(nil))
 }
