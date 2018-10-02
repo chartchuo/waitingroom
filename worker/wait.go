@@ -109,6 +109,7 @@ func waitHandler(c *gin.Context) {
 				return
 			}
 			client.Status = clientStatusRelease
+			client.ReleaseTime = time.Now()
 			client.saveCookie(c)
 			c.Redirect(http.StatusTemporaryRedirect, serverEntryPath)
 			log.Debugf("release client %+v", client)

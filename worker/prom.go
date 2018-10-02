@@ -49,6 +49,15 @@ var (
 			Help:      "Number of request to target host per second",
 		},
 		[]string{"host"})
+
+	avgSessionTimeMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "ccwait",
+			Subsystem: "worker",
+			Name:      "avg_session_time",
+			Help:      "Average session time",
+		},
+		[]string{"host"})
 )
 
 func init() {
@@ -57,5 +66,5 @@ func init() {
 	prometheus.MustRegister(maxResponseTimeMetric)
 	prometheus.MustRegister(p95ResponseTimeMetric)
 	prometheus.MustRegister(requestRateMetric)
-
+	prometheus.MustRegister(avgSessionTimeMetric)
 }

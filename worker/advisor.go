@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"apichart.me/waitingroom/advisor/adv"
-	"github.com/patrickmn/go-cache"
 	"google.golang.org/grpc"
 )
 
@@ -24,15 +23,15 @@ type clientChan struct {
 }
 
 type serverCounter struct {
-	count          int
-	sum            int
-	concurrentUser *cache.Cache
-	p95            []int
+	count int
+	sum   int
+	// concurrentUser int
+	p95 []int
 }
 
-func (c *serverCounter) getConcurrentUser() int {
-	return c.concurrentUser.ItemCount()
-}
+// func (c *serverCounter) getConcurrentUser() int {
+// 	return session.concurrent()
+// }
 
 // Reponse time unit in milisec
 var inRespTime = make(chan clientChan, 100)
@@ -55,7 +54,6 @@ func localAdvisor() {
 	client := adv.NewAdvServiceClient(conn)
 	ctx := context.Background()
 
-	// cons := make(map[string]*cache.Cache)
 	serverStat := make(map[string]serverCounter)
 	tick := time.Tick(advInterval * time.Second) //update with advisor time interval
 	for {
@@ -64,23 +62,24 @@ func localAdvisor() {
 			_, ok := serverStat[c.Server]
 			if !ok {
 				serverStat[c.Server] = serverCounter{
-					count:          0,
-					sum:            0,
-					concurrentUser: cache.New(time.Minute, time.Second*advInterval),
-					p95:            make([]int, 0, p95cap),
+					count: 0,
+					sum:   0,
+					// concurrentUser: 0,
+					p95: make([]int, 0, p95cap),
 				}
 			}
-			serverStat[c.Server].concurrentUser.Set(c.ID, 1, cache.DefaultExpiration) //add client id cache
+			// serverStat[c.Server].concurrentUser.Set(c.ID, 1, cache.DefaultExpiration) //add client id cache
+			session.add(c.Server, c.ID)
 
 			//calculate 95 percentile
 			p95 := calP95(serverStat[c.Server].p95, serverStat[c.Server].count, c.responseTime)
 			// p95 := calP95(serverStat[c.Server].p95, serverStat[c.Server].count, serverStat[c.Server].count%100) //test p95 by distribyte 0-99
 
 			serverStat[c.Server] = serverCounter{
-				count:          serverStat[c.Server].count + 1,
-				sum:            serverStat[c.Server].sum + c.responseTime,
-				concurrentUser: serverStat[c.Server].concurrentUser,
-				p95:            p95,
+				count: serverStat[c.Server].count + 1,
+				sum:   serverStat[c.Server].sum + c.responseTime,
+				// concurrentUser: serverStat[c.Server].concurrentUser,
+				p95: p95,
 			}
 
 		case <-tick: //calculate statistic info
@@ -96,14 +95,15 @@ func localAdvisor() {
 				}
 				requestRateMetric.WithLabelValues(host).Set(float64(count) / float64(advInterval))
 				avgResponseTimeMetric.WithLabelValues(host).Set(float64(sum) / float64(count))
-				concurrentUserMetric.WithLabelValues(host).Set(float64(counter.getConcurrentUser()))
+				concurrentUserMetric.WithLabelValues(host).Set(float64(session.concurrent(host)))
 				maxResponseTimeMetric.WithLabelValues(host).Set(float64(getP95Max(counter.p95)))
 				p95ResponseTimeMetric.WithLabelValues(host).Set(float64(getP95(counter.p95)))
+				avgSessionTimeMetric.WithLabelValues(host).Set(float64(session.avgTime(host)))
 			}
 
 			switch advisorState {
 			case advisorStatusLocal:
-				for host, counter := range serverStat { //local calculation
+				for host := range serverStat { //local calculation
 					s, err := getServerData(host)
 					if err != nil {
 						log.Error("Local advisor can't fund server/host" + host)
@@ -113,7 +113,7 @@ func localAdvisor() {
 					case serverStatusNormal:
 					case serverStatusNotOpen:
 					case serverStatusWaitRoom:
-						cu := counter.getConcurrentUser()
+						cu := session.concurrent(host)
 						if cu < s.MaxUsers/2 {
 							s.ReleaseTime = s.ReleaseTime.Add(advInterval * time.Second * 2)
 						} else if cu < s.MaxUsers {
@@ -130,19 +130,13 @@ func localAdvisor() {
 
 			}
 
-			for host, counter := range serverStat { //clear data for all server
+			for host := range serverStat { //clear data for all server
 				serverStat[host] = serverCounter{
-					count:          0,
-					sum:            0,
-					concurrentUser: counter.concurrentUser,
+					count: 0,
+					sum:   0,
+					// concurrentUser: counter.concurrentUser,
 				}
 			}
-
-			//mock server data tobe remove
-			// mockserver := serverdataDB["mock"]
-			// mockserver.ReleaseTime = time.Unix(0, advData.ReleaseTime)
-			// serverdataDB["mock"] = mockserver
-			// log.Debugln(serverdataDB["mock"].ReleaseTime)
 		}
 	}
 }
