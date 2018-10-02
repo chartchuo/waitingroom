@@ -209,6 +209,7 @@ func ginContext2Client(c *gin.Context) (clientData, error) {
 
 func (client *clientData) saveCookie(c *gin.Context) {
 	//generate new message authen
+	client.LastAccess = time.Now()
 	client.genMAC()
 
 	clientCookie := client.toCookie()

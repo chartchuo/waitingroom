@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -87,6 +88,8 @@ func waitHandler(c *gin.Context) {
 		return
 
 	case serverStatusNotOpen:
+		client.Status = clientStatusWait
+		client.QTime = spanTime(server.OpenTime)
 		client.saveCookie(c)
 		renderWaitPage(c, client)
 		return
@@ -102,15 +105,20 @@ func waitHandler(c *gin.Context) {
 				client = ginContext2NewClient(c)
 				client.saveCookie(c)
 				c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
+				log.Debugf("invalid MAC %+v", client)
+				return
 			}
 			client.Status = clientStatusRelease
 			client.saveCookie(c)
 			c.Redirect(http.StatusTemporaryRedirect, serverEntryPath)
+			log.Debugf("release client %+v", client)
 			return
 		}
 		client.Status = clientStatusWait
 		client.saveCookie(c)
 		renderWaitPage(c, client)
+		log.Debugf("wait client %+v", client)
+		log.Debugf("serverdata %+v", server)
 		return
 	}
 

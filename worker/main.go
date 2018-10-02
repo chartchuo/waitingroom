@@ -48,8 +48,6 @@ func main() {
 		confManager.Close()
 	}()
 
-	startAdvisor()
-
 	if appRunMode == "debug" {
 		// serverinit() //mock data
 		log.SetLevel(log.DebugLevel)
@@ -57,6 +55,9 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 		log.SetLevel(log.ErrorLevel)
 	}
+
+	startAdvisor()
+	startServerJobs()
 	r := gin.Default()
 
 	r.Delims("{{", "}}")

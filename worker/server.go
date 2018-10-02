@@ -4,7 +4,11 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
+
+const serverInterval = 1 //second
 
 //ServerConfig for save and load from file
 type ServerConfig struct {
@@ -18,6 +22,8 @@ const (
 	serverStatusNotOpen
 	serverStatusWaitRoom
 )
+
+const defaultMaxUsers = 100
 
 //ServerData dynamic server data
 type ServerData struct {
@@ -63,17 +69,39 @@ func newServerData(name string) (ServerData, error) {
 	if ok {
 		return s2, nil
 	}
-	// c := confManager.Get()
+	c := confManager.Get()
+	open := c.ServerConfig[name].OpenTime
+	max := c.ServerConfig[name].MaxUsers
+	if max == 0 {
+		max = defaultMaxUsers
+	}
+	var status serverStatus
+	if open.After(time.Now()) {
+		status = serverStatusNotOpen
+	} else {
+		status = serverStatusWaitRoom
+	}
+	var release time.Time
+	switch status {
+	case serverStatusNormal:
+		release = time.Now()
+	case serverStatusNotOpen:
+		release = open
+	case serverStatusWaitRoom:
+		release = open
+	}
 
-	// log.Debug("name: " + name)
+	if appRunMode == "debug" {
+		open = time.Now().Add(time.Second * 10)
+		status = serverStatusNotOpen
+		release = open
+		max = 10
+	}
 	serverdataDB[name] = ServerData{
-		Status: serverStatusWaitRoom,
-		// Status: serverStatusNotOpen,
-		// Status:      serverStatusNormal,
-		ReleaseTime: time.Now().Add(time.Minute * 2),
-		OpenTime:    time.Now().Add(time.Minute * 2), //todo read from config
-		MaxUsers:    10,                              //todo read from config
-		// CurrentUsers: 100,
+		Status:      status,
+		ReleaseTime: release,
+		OpenTime:    open,
+		MaxUsers:    max,
 	}
 	s3, ok := serverdataDB[name]
 	if ok {
@@ -94,4 +122,34 @@ func setServerData(name string, s ServerData) {
 	serverdataMutex.Lock()
 	defer serverdataMutex.Unlock()
 	serverdataDB[name] = s
+}
+
+func startServerJobsOpen() {
+	for {
+		for k, v := range serverdataDB {
+			switch v.Status {
+			case serverStatusNotOpen:
+				if v.OpenTime.Before(time.Now()) {
+					v.Status = serverStatusWaitRoom
+					v.ReleaseTime = v.OpenTime
+					setServerData(k, v)
+					log.Debug("Open server: ", k)
+				}
+			}
+
+		}
+		time.Sleep(serverInterval * time.Second)
+	}
+}
+
+func initServerData() {
+	c := confManager.Get()
+	for k := range c.ServerConfig {
+		newServerData(k)
+	}
+}
+
+func startServerJobs() {
+	initServerData()
+	go startServerJobsOpen()
 }
