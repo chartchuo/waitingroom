@@ -66,7 +66,7 @@ func (s clientSession) clearSessionTimeout() {
 				}
 			}
 			if count != 0 {
-				avgSesstionTime[server] = avgSesstionTime[server] + sum/count //moving average
+				avgSesstionTime[server] = (avgSesstionTime[server] + sum/count) / 2 //moving average
 			}
 		}
 		sessionMutex.Unlock()
