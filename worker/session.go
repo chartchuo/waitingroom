@@ -5,7 +5,12 @@ import (
 	"time"
 )
 
-type clientSession map[string]map[string]time.Time
+type clientSessionElement struct {
+	arrive     time.Time
+	lastAccess time.Time
+}
+
+type clientSession map[string]map[string]clientSessionElement
 
 var session clientSession
 var avgSesstionTime map[string]int //second
@@ -26,10 +31,16 @@ func (s clientSession) add(server, id string) {
 
 	ss, ok := s[server]
 	if !ok {
-		s[server] = make(map[string]time.Time)
+		s[server] = make(map[string]clientSessionElement)
 		ss, ok = s[server]
 	}
-	ss[id] = time.Now()
+
+	e, ok := ss[id]
+	if ok {
+		ss[id] = clientSessionElement{arrive: e.arrive, lastAccess: time.Now()}
+		return
+	}
+	ss[id] = clientSessionElement{arrive: time.Now(), lastAccess: time.Now()}
 }
 
 func (s clientSession) concurrent(server string) int {
@@ -48,9 +59,9 @@ func (s clientSession) clearSessionTimeout() {
 			count := 0
 			sum := 0
 			for id, t := range m {
-				if t.Add(sessioinTimeout).Before(n) {
+				if t.lastAccess.Add(sessioinTimeout).Before(n) {
 					count++
-					sum += int(n.Sub(t) / time.Second)
+					sum += int(n.Add(-sessioinTimeout).Sub(t.arrive) / time.Second)
 					delete(m, id)
 				}
 			}
