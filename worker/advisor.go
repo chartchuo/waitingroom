@@ -30,7 +30,8 @@ func startAdvisor() {
 	go localAdvisor()
 }
 
-const advInterval = 1 //second
+const advInterval = 1       //second
+const advResetInterval = 15 //second
 
 // single go routine no need to aware race condition
 func localAdvisor() {
@@ -44,6 +45,7 @@ func localAdvisor() {
 	ctx := context.Background()
 
 	tick := time.Tick(advInterval * time.Second) //update with advisor time interval
+	resettick := time.Tick(advResetInterval * time.Second)
 	for {
 		select {
 		case c := <-inRespTime: //receive information from worker
@@ -66,6 +68,19 @@ func localAdvisor() {
 				setServerData(c.Server, ss)
 			}
 
+		case <-resettick:
+			for host := range serverdataDB {
+				s, err := getServerData(host)
+				if err != nil {
+					log.Error("Local advisor can't fund server/host" + host)
+				}
+				counter := s.counter
+
+				//reset counter
+				counter.count = 0
+				counter.sum = 0
+				counter.p95 = make([]int, 0, p95cap)
+			}
 		case <-tick: //calculate statistic info
 
 			//update statistic and communicate to global advisor
@@ -82,10 +97,13 @@ func localAdvisor() {
 				counter.maxresponsetime = getP95(counter.p95)
 				counter.concurrentusers = session.concurrent(host)
 
-				//reset counter
-				counter.count = 0
-				counter.sum = 0
-				setServerData(host, s)
+				//update prometheus metrics
+				requestRateMetric.WithLabelValues(host).Set(float64(count) / float64(advInterval))
+				avgResponseTimeMetric.WithLabelValues(host).Set(float64(sum) / float64(count))
+				concurrentUserMetric.WithLabelValues(host).Set(float64(counter.concurrentusers))
+				maxResponseTimeMetric.WithLabelValues(host).Set(float64(getP95Max(counter.p95)))
+				p95ResponseTimeMetric.WithLabelValues(host).Set(float64(counter.maxresponsetime))
+				avgSessionTimeMetric.WithLabelValues(host).Set(float64(session.avgTime(host)))
 
 				//communicate to advisor
 				stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
@@ -95,14 +113,6 @@ func localAdvisor() {
 					advisorState = advisorStatusLocal
 					break
 				}
-
-				//update prometheus metrics
-				requestRateMetric.WithLabelValues(host).Set(float64(count) / float64(advInterval))
-				avgResponseTimeMetric.WithLabelValues(host).Set(float64(sum) / float64(count))
-				concurrentUserMetric.WithLabelValues(host).Set(float64(counter.concurrentusers))
-				maxResponseTimeMetric.WithLabelValues(host).Set(float64(getP95Max(counter.p95)))
-				p95ResponseTimeMetric.WithLabelValues(host).Set(float64(counter.maxresponsetime))
-				avgSessionTimeMetric.WithLabelValues(host).Set(float64(session.avgTime(host)))
 			}
 
 			switch advisorState {
