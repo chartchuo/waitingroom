@@ -30,7 +30,7 @@ func startAdvisor() {
 	go localAdvisor()
 }
 
-const advInterval = 5 //second
+const advInterval = 1 //second
 
 // single go routine no need to aware race condition
 func localAdvisor() {
@@ -62,6 +62,7 @@ func localAdvisor() {
 			if session.concurrent(c.Server) >= ss.MaxUsers {
 				ss.counter.concurrentusers = session.concurrent(c.Server)
 				ss.Status = serverStatusWaitRoom
+				ss.ReleaseTime = time.Now()
 				setServerData(c.Server, ss)
 			}
 
@@ -129,9 +130,9 @@ func localAdvisor() {
 						}
 					case serverStatusWaitRoom:
 						cu := s.counter.concurrentusers
-						ff := 4 //max fast forward 4x
+						ff := 4.0 //max fast forward 4x
 						if cu != 0 {
-							ff = s.MaxUsers / cu
+							ff = float64(s.MaxUsers) / float64(cu)
 							if ff > 4 {
 								ff = 4
 							}
@@ -145,7 +146,7 @@ func localAdvisor() {
 								s.Status = serverStatusNormal
 							}
 						}
-						log.Debugf("release: %v", time.Now().Sub(s.ReleaseTime))
+						// log.Debugf("release: %v", time.Now().Sub(s.ReleaseTime))
 						setServerData(host, s)
 					}
 				}

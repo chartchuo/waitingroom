@@ -37,7 +37,6 @@ func main() {
 		} else {
 			confManager.Set(conf)
 			initServerData()
-			// confManager.Set(conf)
 			log.Debugf("config: %v\n", conf)
 		}
 	})
