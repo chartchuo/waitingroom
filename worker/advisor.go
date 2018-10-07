@@ -22,17 +22,6 @@ type clientChan struct {
 	responseTime int
 }
 
-type serverCounter struct {
-	count int
-	sum   int
-	// concurrentUser int
-	p95 []int
-}
-
-// func (c *serverCounter) getConcurrentUser() int {
-// 	return session.concurrent()
-// }
-
 // Reponse time unit in milisec
 var inRespTime = make(chan clientChan, 100)
 var avgRespTime int
@@ -54,38 +43,24 @@ func localAdvisor() {
 	client := adv.NewAdvServiceClient(conn)
 	ctx := context.Background()
 
-	serverStat := make(map[string]serverCounter)
 	tick := time.Tick(advInterval * time.Second) //update with advisor time interval
 	for {
 		select {
 		case c := <-inRespTime: //receive information from worker
-			_, ok := serverStat[c.Server]
-			if !ok {
-				serverStat[c.Server] = serverCounter{
-					count: 0,
-					sum:   0,
-					// concurrentUser: 0,
-					p95: make([]int, 0, p95cap),
-				}
-			}
-			// serverStat[c.Server].concurrentUser.Set(c.ID, 1, cache.DefaultExpiration) //add client id cache
 			session.add(c.Server, c.ID)
-
+			s := serverdataDB[c.Server].counter
 			//calculate 95 percentile
-			p95 := calP95(serverStat[c.Server].p95, serverStat[c.Server].count, c.responseTime)
-			// p95 := calP95(serverStat[c.Server].p95, serverStat[c.Server].count, serverStat[c.Server].count%100) //test p95 by distribyte 0-99
+			p95 := calP95(s.p95, s.count, c.responseTime)
 
-			serverStat[c.Server] = serverCounter{
-				count: serverStat[c.Server].count + 1,
-				sum:   serverStat[c.Server].sum + c.responseTime,
-				// concurrentUser: serverStat[c.Server].concurrentUser,
-				p95: p95,
-			}
+			s.count++
+			s.sum += c.responseTime
+			s.p95 = p95
 
 		case <-tick: //calculate statistic info
-			for host, counter := range serverStat {
-				count := serverStat[host].count
-				sum := serverStat[host].sum
+			for host, data := range serverdataDB {
+				counter := data.counter
+				count := counter.count
+				sum := counter.sum
 				stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
 				advData, err := client.Update(ctx, stat)
 				if err != nil {
@@ -103,7 +78,7 @@ func localAdvisor() {
 
 			switch advisorState {
 			case advisorStatusLocal:
-				for host := range serverStat { //local calculation
+				for host := range serverdataDB { //local calculation
 					s, err := getServerData(host)
 					if err != nil {
 						log.Error("Local advisor can't fund server/host" + host)
@@ -112,6 +87,13 @@ func localAdvisor() {
 					switch s.Status {
 					case serverStatusNormal:
 					case serverStatusNotOpen:
+						n := time.Now()
+						if s.OpenTime.Before(n) {
+							s.Status = serverStatusWaitRoom
+							s.ReleaseTime = s.OpenTime
+							setServerData(host, s)
+							log.Debugf("Open server: %v", host)
+						}
 					case serverStatusWaitRoom:
 						cu := session.concurrent(host)
 						if cu < s.MaxUsers/2 {
@@ -122,20 +104,15 @@ func localAdvisor() {
 						if s.ReleaseTime.After(time.Now()) {
 							s.ReleaseTime = time.Now()
 						}
+						s.counter.currentUsers = cu
 						setServerData(host, s)
-						log.Debugf("ADV: release time for host %v: %v\n dif from now:%v", host, s.ReleaseTime, time.Now().Sub(s.ReleaseTime))
 					}
-
 				}
-
 			}
 
-			for host := range serverStat { //clear data for all server
-				serverStat[host] = serverCounter{
-					count: 0,
-					sum:   0,
-					// concurrentUser: counter.concurrentUser,
-				}
+			for _, data := range serverdataDB { //clear data for all server
+				data.counter.count = 0
+				data.counter.sum = 0
 			}
 		}
 	}

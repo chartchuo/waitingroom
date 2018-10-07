@@ -131,5 +131,3 @@ func proxyHandler(c *gin.Context) {
 		return
 	}
 }
-
-//todo if error to access backen should not response with blank page

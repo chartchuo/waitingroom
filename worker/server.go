@@ -4,8 +4,6 @@ import (
 	"errors"
 	"sync"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const serverInterval = 1 //second
@@ -25,13 +23,21 @@ const (
 
 const defaultMaxUsers = 100
 
+type serverCounter struct {
+	count        int
+	sum          int
+	p95          []int
+	currentUsers int
+}
+
 //ServerData dynamic server data
 type ServerData struct {
-	Status       serverStatus
-	ReleaseTime  time.Time
-	OpenTime     time.Time
-	MaxUsers     int
-	CurrentUsers int //todo on local proxy instant only not implement cluster solution yet
+	Status      serverStatus
+	ReleaseTime time.Time
+	OpenTime    time.Time
+	Bording     int //minute
+	MaxUsers    int
+	counter     *serverCounter
 }
 
 var serverdataDB map[string]ServerData
@@ -41,34 +47,17 @@ func init() {
 	serverdataDB = make(map[string]ServerData)
 }
 
-// func serverinit2() {
-// 	serverdataDB = make(map[string]ServerData)
-// 	c := confManager.Get()
-// 	configMock := c.ServerConfig["mock"]
-// 	configMock.OpenTime = time.Now().Add(time.Minute)
-// 	confManager.Set(c)
-
-// 	serverdataDB["mock"] = ServerData{
-// 		// Status: serverStatusWaitRoom,
-// 		// Status: serverStatusNotOpen,
-// 		Status:      serverStatusNormal,
-// 		ReleaseTime: c.ServerConfig["mock"].OpenTime.Add(time.Minute * 2),
-// 		MaxUsers:    1,
-// 		// CurrentUsers: 100,
-// 	}
-// }
-
 func newServerData(name string) (ServerData, error) {
-	s, ok := serverdataDB[name] //check lock check
-	if ok {
-		return s, nil
-	}
+	// s, ok := serverdataDB[name] //check lock check
+	// if ok {
+	// 	return s, nil
+	// }
 	serverdataMutex.Lock()
 	defer serverdataMutex.Unlock()
-	s2, ok := serverdataDB[name]
-	if ok {
-		return s2, nil
-	}
+	// s2, ok := serverdataDB[name]
+	// if ok {
+	// 	return s2, nil
+	// }
 	c := confManager.Get()
 	open := c.ServerConfig[name].OpenTime
 	max := c.ServerConfig[name].MaxUsers
@@ -82,25 +71,21 @@ func newServerData(name string) (ServerData, error) {
 		status = serverStatusWaitRoom
 	}
 	var release time.Time
-	switch status {
-	case serverStatusNormal:
+	release = open
+	if status == serverStatusNormal {
 		release = time.Now()
-	case serverStatusNotOpen:
-		release = open
-	case serverStatusWaitRoom:
-		release = open
 	}
 
 	if appRunMode == "debug" {
-		// open = time.Now().Add(time.Second * 10)
-		// status = serverStatusNotOpen
+		open = time.Now().Add(time.Second * 10)
+		status = serverStatusNotOpen
 		// release = open
 		// max = 10
 
-		open = time.Now()
-		status = serverStatusNormal
-		release = open
-		max = 10
+		// open = time.Now()
+		// status = serverStatusNormal
+		// release = open
+		// max = 10
 
 	}
 	serverdataDB[name] = ServerData{
@@ -108,6 +93,12 @@ func newServerData(name string) (ServerData, error) {
 		ReleaseTime: release,
 		OpenTime:    open,
 		MaxUsers:    max,
+		counter: &serverCounter{
+			count:        0,
+			sum:          0,
+			p95:          make([]int, 0, p95cap),
+			currentUsers: 0,
+		},
 	}
 	s3, ok := serverdataDB[name]
 	if ok {
@@ -130,32 +121,9 @@ func setServerData(name string, s ServerData) {
 	serverdataDB[name] = s
 }
 
-func startServerJobsOpen() {
-	for {
-		for k, v := range serverdataDB {
-			switch v.Status {
-			case serverStatusNotOpen:
-				if v.OpenTime.Before(time.Now()) {
-					v.Status = serverStatusWaitRoom
-					v.ReleaseTime = v.OpenTime
-					setServerData(k, v)
-					log.Debug("Open server: ", k)
-				}
-			}
-
-		}
-		time.Sleep(serverInterval * time.Second)
-	}
-}
-
 func initServerData() {
 	c := confManager.Get()
 	for k := range c.ServerConfig {
 		newServerData(k)
 	}
-}
-
-func startServerJobs() {
-	initServerData()
-	go startServerJobsOpen()
 }

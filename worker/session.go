@@ -29,6 +29,7 @@ func (s clientSession) add(server, id string) {
 	sessionMutex.Lock()
 	defer sessionMutex.Unlock()
 
+	n := time.Now()
 	ss, ok := s[server]
 	if !ok {
 		s[server] = make(map[string]clientSessionElement)
@@ -37,10 +38,10 @@ func (s clientSession) add(server, id string) {
 
 	e, ok := ss[id]
 	if ok {
-		ss[id] = clientSessionElement{arrive: e.arrive, lastAccess: time.Now()}
+		ss[id] = clientSessionElement{arrive: e.arrive, lastAccess: n}
 		return
 	}
-	ss[id] = clientSessionElement{arrive: time.Now(), lastAccess: time.Now()}
+	ss[id] = clientSessionElement{arrive: n, lastAccess: n}
 }
 
 func (s clientSession) concurrent(server string) int {
@@ -60,8 +61,11 @@ func (s clientSession) clearSessionTimeout() {
 			sum := 0
 			for id, t := range m {
 				if t.lastAccess.Add(sessioinTimeout).Before(n) {
-					count++
-					sum += int(n.Add(-sessioinTimeout).Sub(t.arrive) / time.Second)
+					d := int(t.lastAccess.Sub(t.arrive) / time.Second)
+					if d > 0 { //exclude single request
+						count++
+						sum += d
+					}
 					delete(m, id)
 				}
 			}

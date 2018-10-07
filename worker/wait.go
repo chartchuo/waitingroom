@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -101,30 +100,22 @@ func waitHandler(c *gin.Context) {
 		}
 		if client.QTime.Before(server.ReleaseTime) {
 			if !client.isValid() {
-				//expect change mac at client site
+				//MAC changed at client site
 				client = ginContext2NewClient(c)
 				client.saveCookie(c)
 				c.Redirect(http.StatusTemporaryRedirect, waitRoomPath)
-				log.Debugf("invalid MAC %+v", client)
 				return
 			}
 			client.Status = clientStatusRelease
 			client.ReleaseTime = time.Now()
 			client.saveCookie(c)
 			c.Redirect(http.StatusTemporaryRedirect, serverEntryPath)
-			log.Debugf("release client %+v", client)
 			return
 		}
 		client.Status = clientStatusWait
 		client.saveCookie(c)
 		renderWaitPage(c, client)
-		log.Debugf("wait client %+v", client)
-		log.Debugf("serverdata %+v", server)
 		return
 	}
 
 }
-
-//todo
-//link click not count as f5
-//re queue for f5 user

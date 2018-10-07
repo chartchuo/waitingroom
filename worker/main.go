@@ -36,6 +36,8 @@ func main() {
 			log.Errorf("ERROR: %v", err)
 		} else {
 			confManager.Set(conf)
+			initServerData()
+			confManager.Set(conf)
 			log.Debugf("config: %v\n", conf)
 		}
 	})
@@ -48,8 +50,9 @@ func main() {
 		confManager.Close()
 	}()
 
+	// r := gin.Default()
+	r := gin.New()
 	if appRunMode == "debug" {
-		// serverinit() //mock data
 		log.SetLevel(log.DebugLevel)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
@@ -57,8 +60,7 @@ func main() {
 	}
 
 	startAdvisor()
-	startServerJobs()
-	r := gin.Default()
+	// startServerJobs()
 
 	r.Delims("{{", "}}")
 	r.LoadHTMLFiles("tmpl/wait.tmpl", "tmpl/error.tmpl") //gin limitation: must add multiple file in one command
