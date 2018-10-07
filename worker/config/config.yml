@@ -9,5 +9,6 @@ targetdb:
 serverconfig:
   mock:
     opentime: 2018-09-22 19:00:00
-    bording: 60 #minute 
+    bordingtime: 60 #minutes 
+    maxresponsetime: 1000 #milisecs
     maxusers: 2

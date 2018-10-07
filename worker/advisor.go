@@ -57,10 +57,27 @@ func localAdvisor() {
 			s.p95 = p95
 
 		case <-tick: //calculate statistic info
-			for host, data := range serverdataDB {
-				counter := data.counter
+
+			//update statistic and communicate to global advisor
+			for host := range serverdataDB {
+				s, err := getServerData(host)
+				if err != nil {
+					log.Error("Local advisor can't fund server/host" + host)
+				}
+				counter := s.counter
+
+				//update data
 				count := counter.count
 				sum := counter.sum
+				counter.maxresponsetime = getP95(counter.p95)
+				counter.concurrentusers = session.concurrent(host)
+
+				//reset counter
+				counter.count = 0
+				counter.sum = 0
+				setServerData(host, s)
+
+				//communicate to advisor
 				stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
 				advData, err := client.Update(ctx, stat)
 				if err != nil {
@@ -68,11 +85,13 @@ func localAdvisor() {
 					advisorState = advisorStatusLocal
 					break
 				}
+
+				//update prometheus metrics
 				requestRateMetric.WithLabelValues(host).Set(float64(count) / float64(advInterval))
 				avgResponseTimeMetric.WithLabelValues(host).Set(float64(sum) / float64(count))
-				concurrentUserMetric.WithLabelValues(host).Set(float64(session.concurrent(host)))
+				concurrentUserMetric.WithLabelValues(host).Set(float64(counter.concurrentusers))
 				maxResponseTimeMetric.WithLabelValues(host).Set(float64(getP95Max(counter.p95)))
-				p95ResponseTimeMetric.WithLabelValues(host).Set(float64(getP95(counter.p95)))
+				p95ResponseTimeMetric.WithLabelValues(host).Set(float64(counter.maxresponsetime))
 				avgSessionTimeMetric.WithLabelValues(host).Set(float64(session.avgTime(host)))
 			}
 
@@ -95,24 +114,23 @@ func localAdvisor() {
 							log.Debugf("Open server: %v", host)
 						}
 					case serverStatusWaitRoom:
-						cu := session.concurrent(host)
-						if cu < s.MaxUsers/2 {
-							s.ReleaseTime = s.ReleaseTime.Add(advInterval * time.Second * 2)
-						} else if cu < s.MaxUsers {
-							s.ReleaseTime = s.ReleaseTime.Add(advInterval * time.Second)
+						cu := s.counter.concurrentusers
+						ff := 4 //max fast forward
+						if cu != 0 {
+							ff = s.MaxUsers / cu
+							if ff > 4 {
+								ff = 4
+							}
+						}
+						if cu < s.MaxUsers {
+							s.ReleaseTime = s.ReleaseTime.Add(advInterval * time.Second * time.Duration(ff))
 						}
 						if s.ReleaseTime.After(time.Now()) {
 							s.ReleaseTime = time.Now()
 						}
-						s.counter.currentUsers = cu
 						setServerData(host, s)
 					}
 				}
-			}
-
-			for _, data := range serverdataDB { //clear data for all server
-				data.counter.count = 0
-				data.counter.sum = 0
 			}
 		}
 	}

@@ -10,8 +10,10 @@ const serverInterval = 1 //second
 
 //ServerConfig for save and load from file
 type ServerConfig struct {
-	OpenTime time.Time `yaml:"opentime,omitempty"`
-	MaxUsers int       `yaml:"maxusers,omitempty"`
+	OpenTime        time.Time `yaml:"opentime,omitempty"`
+	BordingTime     int       `yaml:"bordingtime,omitempty"`
+	MaxUsers        int       `yaml:"maxusers,omitempty"`
+	MaxResponseTime int       `yaml:"maxresponsetime,omitempty"`
 }
 type serverStatus int
 
@@ -24,20 +26,22 @@ const (
 const defaultMaxUsers = 100
 
 type serverCounter struct {
-	count        int
-	sum          int
-	p95          []int
-	currentUsers int
+	count           int
+	sum             int
+	p95             []int
+	concurrentusers int
+	maxresponsetime int
 }
 
 //ServerData dynamic server data
 type ServerData struct {
-	Status      serverStatus
-	ReleaseTime time.Time
-	OpenTime    time.Time
-	Bording     int //minute
-	MaxUsers    int
-	counter     *serverCounter
+	Status          serverStatus
+	ReleaseTime     time.Time
+	OpenTime        time.Time
+	BordingTime     int //minutes
+	MaxUsers        int
+	MaxResponseTime int //milisecs
+	counter         *serverCounter
 }
 
 var serverdataDB map[string]ServerData
@@ -48,19 +52,13 @@ func init() {
 }
 
 func newServerData(name string) (ServerData, error) {
-	// s, ok := serverdataDB[name] //check lock check
-	// if ok {
-	// 	return s, nil
-	// }
 	serverdataMutex.Lock()
 	defer serverdataMutex.Unlock()
-	// s2, ok := serverdataDB[name]
-	// if ok {
-	// 	return s2, nil
-	// }
 	c := confManager.Get()
 	open := c.ServerConfig[name].OpenTime
 	max := c.ServerConfig[name].MaxUsers
+	bording := c.ServerConfig[name].BordingTime
+	maxrestime := c.ServerConfig[name].MaxResponseTime
 	if max == 0 {
 		max = defaultMaxUsers
 	}
@@ -70,6 +68,11 @@ func newServerData(name string) (ServerData, error) {
 	} else {
 		status = serverStatusWaitRoom
 	}
+
+	if bording == 0 {
+		bording = 60 //minutes
+	}
+
 	var release time.Time
 	release = open
 	if status == serverStatusNormal {
@@ -89,15 +92,14 @@ func newServerData(name string) (ServerData, error) {
 
 	}
 	serverdataDB[name] = ServerData{
-		Status:      status,
-		ReleaseTime: release,
-		OpenTime:    open,
-		MaxUsers:    max,
+		Status:          status,
+		ReleaseTime:     release,
+		OpenTime:        open,
+		BordingTime:     bording,
+		MaxUsers:        max,
+		MaxResponseTime: maxrestime,
 		counter: &serverCounter{
-			count:        0,
-			sum:          0,
-			p95:          make([]int, 0, p95cap),
-			currentUsers: 0,
+			p95: make([]int, 0, p95cap),
 		},
 	}
 	s3, ok := serverdataDB[name]
