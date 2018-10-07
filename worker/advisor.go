@@ -48,13 +48,22 @@ func localAdvisor() {
 		select {
 		case c := <-inRespTime: //receive information from worker
 			session.add(c.Server, c.ID)
-			s := serverdataDB[c.Server].counter
+			ss, err := getServerData(c.Server)
+			if err != nil {
+				log.Error("Local advisor can't fund server/host" + c.Server)
+			}
+			s := ss.counter
 			//calculate 95 percentile
 			p95 := calP95(s.p95, s.count, c.responseTime)
 
 			s.count++
 			s.sum += c.responseTime
 			s.p95 = p95
+			if session.concurrent(c.Server) >= ss.MaxUsers {
+				ss.counter.concurrentusers = session.concurrent(c.Server)
+				ss.Status = serverStatusWaitRoom
+				setServerData(c.Server, ss)
+			}
 
 		case <-tick: //calculate statistic info
 
@@ -105,6 +114,11 @@ func localAdvisor() {
 
 					switch s.Status {
 					case serverStatusNormal:
+						if s.counter.concurrentusers > s.MaxUsers {
+							s.Status = serverStatusWaitRoom
+							s.ReleaseTime = time.Now()
+							setServerData(host, s)
+						}
 					case serverStatusNotOpen:
 						n := time.Now()
 						if s.OpenTime.Before(n) {
@@ -115,7 +129,7 @@ func localAdvisor() {
 						}
 					case serverStatusWaitRoom:
 						cu := s.counter.concurrentusers
-						ff := 4 //max fast forward
+						ff := 4 //max fast forward 4x
 						if cu != 0 {
 							ff = s.MaxUsers / cu
 							if ff > 4 {
@@ -127,7 +141,11 @@ func localAdvisor() {
 						}
 						if s.ReleaseTime.After(time.Now()) {
 							s.ReleaseTime = time.Now()
+							if cu < s.MaxUsers {
+								s.Status = serverStatusNormal
+							}
 						}
+						log.Debugf("release: %v", time.Now().Sub(s.ReleaseTime))
 						setServerData(host, s)
 					}
 				}

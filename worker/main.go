@@ -37,7 +37,7 @@ func main() {
 		} else {
 			confManager.Set(conf)
 			initServerData()
-			confManager.Set(conf)
+			// confManager.Set(conf)
 			log.Debugf("config: %v\n", conf)
 		}
 	})
@@ -54,6 +54,12 @@ func main() {
 	r := gin.New()
 	if appRunMode == "debug" {
 		log.SetLevel(log.DebugLevel)
+
+		//mock data
+		s, _ := getServerData("mock")
+		s.OpenTime = time.Now().Add(time.Second * 10)
+		s.Status = serverStatusNotOpen
+		setServerData("mock", s)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 		log.SetLevel(log.ErrorLevel)
@@ -64,10 +70,6 @@ func main() {
 
 	r.Delims("{{", "}}")
 	r.LoadHTMLFiles("tmpl/wait.tmpl", "tmpl/error.tmpl") //gin limitation: must add multiple file in one command
-
-	// r.GET(waitRoomPath, waitHandler)
-	// r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	// r.Any("/", proxyHandler)
 
 	r.Any("/*path", func(c *gin.Context) {
 		path := c.Param("path")

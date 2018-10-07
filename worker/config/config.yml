@@ -11,4 +11,4 @@ serverconfig:
     opentime: 2018-09-22 19:00:00
     bordingtime: 60 #minutes 
     maxresponsetime: 1000 #milisecs
-    maxusers: 2
+    maxusers: 300

@@ -66,7 +66,7 @@ func newServerData(name string) (ServerData, error) {
 	if open.After(time.Now()) {
 		status = serverStatusNotOpen
 	} else {
-		status = serverStatusWaitRoom
+		status = serverStatusNormal
 	}
 
 	if bording == 0 {
@@ -79,18 +79,6 @@ func newServerData(name string) (ServerData, error) {
 		release = time.Now()
 	}
 
-	if appRunMode == "debug" {
-		open = time.Now().Add(time.Second * 10)
-		status = serverStatusNotOpen
-		// release = open
-		// max = 10
-
-		// open = time.Now()
-		// status = serverStatusNormal
-		// release = open
-		// max = 10
-
-	}
 	serverdataDB[name] = ServerData{
 		Status:          status,
 		ReleaseTime:     release,
