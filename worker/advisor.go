@@ -30,8 +30,8 @@ func startAdvisor() {
 	go localAdvisor()
 }
 
-const advInterval = 1       //second
-const advResetInterval = 15 //second
+const advInterval = 1      //second
+const advResetInterval = 5 //second
 
 // single go routine no need to aware race condition
 func localAdvisor() {
@@ -69,20 +69,6 @@ func localAdvisor() {
 			}
 
 		case <-resettick:
-			for host := range serverdataDB {
-				s, err := getServerData(host)
-				if err != nil {
-					log.Error("Local advisor can't fund server/host" + host)
-				}
-				counter := s.counter
-
-				//reset counter
-				counter.count = 0
-				counter.sum = 0
-				counter.p95 = make([]int, 0, p95cap)
-			}
-		case <-tick: //calculate statistic info
-
 			//update statistic and communicate to global advisor
 			for host := range serverdataDB {
 				s, err := getServerData(host)
@@ -98,7 +84,7 @@ func localAdvisor() {
 				counter.concurrentusers = session.concurrent(host)
 
 				//update prometheus metrics
-				requestRateMetric.WithLabelValues(host).Set(float64(count) / float64(advInterval))
+				requestRateMetric.WithLabelValues(host).Set(float64(count) / float64(advResetInterval))
 				avgResponseTimeMetric.WithLabelValues(host).Set(float64(sum) / float64(count))
 				concurrentUserMetric.WithLabelValues(host).Set(float64(counter.concurrentusers))
 				maxResponseTimeMetric.WithLabelValues(host).Set(float64(getP95Max(counter.p95)))
@@ -115,6 +101,24 @@ func localAdvisor() {
 				}
 			}
 
+			for host := range serverdataDB {
+				s, err := getServerData(host)
+				if err != nil {
+					log.Error("Local advisor can't fund server/host" + host)
+				}
+				counter := s.counter
+
+				//update data
+				counter.maxresponsetime = getP95(counter.p95)
+				counter.concurrentusers = session.concurrent(host)
+
+				//reset counter
+				counter.count = 0
+				counter.sum = 0
+				counter.p95 = make([]int, 0, p95cap)
+			}
+
+		case <-tick: //calculate statistic info
 			switch advisorState {
 			case advisorStatusLocal:
 				for host := range serverdataDB { //local calculation
