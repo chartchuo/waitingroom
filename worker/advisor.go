@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
-	"apichart.me/waitingroom/advisor/adv"
 	"google.golang.org/grpc"
 )
 
@@ -41,8 +39,8 @@ func localAdvisor() {
 	}
 	defer conn.Close()
 
-	client := adv.NewAdvServiceClient(conn)
-	ctx := context.Background()
+	// client := adv.NewAdvServiceClient(conn)
+	// ctx := context.Background()
 
 	tick := time.Tick(advInterval * time.Second) //update with advisor time interval
 	resettick := time.Tick(advResetInterval * time.Second)
@@ -92,13 +90,13 @@ func localAdvisor() {
 				avgSessionTimeMetric.WithLabelValues(host).Set(float64(session.avgTime(host)))
 
 				//communicate to advisor
-				stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
-				advData, err := client.Update(ctx, stat)
-				if err != nil {
-					log.Errorf("Can't connect to advise: %v %v", err, advData)
-					advisorState = advisorStatusLocal
-					break
-				}
+				// stat := &adv.RequestStat{Sum: int32(sum), Count: int32(count)}
+				// advData, err := client.Update(ctx, stat)
+				// if err != nil {
+				// 	log.Errorf("Can't connect to advise: %v %v", err, advData)
+				// 	advisorState = advisorStatusLocal
+				// 	break
+				// }
 			}
 
 			for host := range serverdataDB {
