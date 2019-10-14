@@ -8,4 +8,5 @@ worker/worker
 *.exe
 *.bin
 tmp/
-worker/results.bin
+results.bin
+*.sum

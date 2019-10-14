@@ -56,10 +56,10 @@ type clientDataCookie struct {
 }
 
 func newClientID() string {
-	u, err := uuid.NewV4()
-	if err != nil {
-		log.Fatal(err)
-	}
+	u := uuid.NewV4()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 	return u.String()
 }
 

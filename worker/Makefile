@@ -3,7 +3,7 @@ build:
 	go build
 	minify --type html -o tmpl/wait.minify.tmpl tmpl/wait.tmpl
 	minify --type html -o tmpl/error.minify.tmpl tmpl/error.tmpl
-	docker build -t localhost:5000/$(service) .
+	docker build -t registry:5000/$(service) .
 
 clean:
 	go clean
@@ -17,7 +17,7 @@ cleanhpa:
 cleanall: clean cleanhpa
 
 push:
-	docker push localhost:5000/$(service)
+	docker push registry:5000/$(service)
 
 deploy:
 	kubectl apply -f kube/deployment.yml

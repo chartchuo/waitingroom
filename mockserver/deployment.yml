@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: mockserver
-        image: localhost:5000/mockserver:latest
+        image: registry:5000/mockserver:latest
         ports:
         - containerPort: 8888
         resources:
